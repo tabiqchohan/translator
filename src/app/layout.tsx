@@ -7,6 +7,7 @@ import BottomNav from "@/components/BottomNav";
 import ToastContainer from "@/components/Toast";
 import AppRating from "@/components/AppRating";
 import Onboarding from "@/components/Onboarding";
+import ServiceWorkerRegistration from "@/components/ServiceWorkerRegistration";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -22,7 +23,7 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Translater - Text, Voice & Document Translation",
   description: "Free translator app powered by AI. Translate text, voice, and documents.",
-  manifest: "/manifest.json",
+  manifest: "/manifest.webmanifest",
   appleWebApp: {
     capable: true,
     statusBarStyle: 'default',
@@ -56,6 +57,7 @@ export default function RootLayout({
             <ToastContainer />
             <AppRating />
             <Onboarding />
+            <ServiceWorkerRegistration />
           </AuthProvider>
         </ThemeProvider>
       </body>
