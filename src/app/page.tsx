@@ -38,6 +38,12 @@ export default function Home() {
           </motion.div>
         </AnimatePresence>
       </div>
+
+      <footer className="mt-auto pt-8 pb-4 text-center">
+        <p className="text-xs text-zinc-400 dark:text-zinc-500">
+          Powered by <span className="font-medium text-blue-500">tabiqchohan</span>
+        </p>
+      </footer>
     </main>
   );
 }
