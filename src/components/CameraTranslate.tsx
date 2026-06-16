@@ -2,10 +2,10 @@
 
 import { useState, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Camera, CameraOff, ScanText, Languages } from 'lucide-react';
+import { Camera, CameraOff, ScanText } from 'lucide-react';
 import LanguageSelect from './LanguageSelect';
 import TranslationCard from './TranslationCard';
-import { translateText } from '@/lib/puter';
+import { imageTranslate } from '@/lib/puter';
 
 export default function CameraTranslate() {
   const [isActive, setIsActive] = useState(false);
@@ -20,6 +20,7 @@ export default function CameraTranslate() {
 
   const startCamera = async () => {
     try {
+      setError('');
       const stream = await navigator.mediaDevices.getUserMedia({
         video: { facingMode: 'environment', width: 1080, height: 720 },
       });
@@ -28,7 +29,6 @@ export default function CameraTranslate() {
       }
       streamRef.current = stream;
       setIsActive(true);
-      setError('');
     } catch {
       setError('Camera access denied. Please allow camera permissions.');
     }
@@ -51,31 +51,31 @@ export default function CameraTranslate() {
     if (!ctx) return;
 
     ctx.drawImage(video, 0, 0);
-    const imageData = canvas.toDataURL('image/png');
 
     setLoading(true);
     setError('');
 
     try {
-      const Tesseract = await import('tesseract.js');
-      const { data } = await Tesseract.recognize(imageData, 'eng+urd+hin', {
-        logger: () => {},
-      });
-      const text = data.text.trim();
+      canvas.toBlob(async (blob) => {
+        if (!blob) {
+          setError('Failed to capture image');
+          setLoading(false);
+          return;
+        }
 
-      if (!text) {
-        setError('No text detected. Try again with clearer lighting.');
+        setCapturedText('Processing image...');
+
+        const result = await imageTranslate(blob, targetLang);
+        if (result) {
+          setTranslatedText(result);
+          setCapturedText('Image captured and translated');
+        } else {
+          setError('No text detected in image. Try again with clearer lighting.');
+        }
         setLoading(false);
-        return;
-      }
-
-      setCapturedText(text);
-
-      const translated = await translateText(text, targetLang);
-      setTranslatedText(translated.text);
+      }, 'image/jpeg', 0.9);
     } catch {
       setError('Failed to process image. Try again.');
-    } finally {
       setLoading(false);
     }
   }, [targetLang]);
@@ -148,7 +148,7 @@ export default function CameraTranslate() {
       </AnimatePresence>
 
       {capturedText && (
-        <TranslationCard text={capturedText} label="Detected Text" readOnly />
+        <TranslationCard text={capturedText} label="Status" readOnly />
       )}
 
       {translatedText && (

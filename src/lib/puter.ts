@@ -8,7 +8,7 @@ export async function initPuter() {
 
   try {
     const module = await import('@heyputer/puter.js');
-    puterInstance = module.puter;
+    puterInstance = module.puter || (window as any).puter;
     return puterInstance;
   } catch {
     const script = document.createElement('script');
@@ -31,6 +31,8 @@ export async function translateText(
   model = 'gpt-4.1'
 ): Promise<{ text: string; detectedLang?: string; confidence?: number }> {
   const puter = await initPuter();
+  if (!puter) return { text: '' };
+
   const source = sourceLang === 'auto' ? '' : ` from ${sourceLang}`;
   const prompt = sourceLang === 'auto'
     ? `Translate the following text to ${targetLang}. First, detect the source language. Return your response as JSON: {"detected":"language_name","translation":"translated_text"}. Do not include anything else:\n\n${text}`
@@ -64,11 +66,23 @@ export async function translateText(
 
 export async function speechToText(audioBlob: Blob): Promise<string> {
   const puter = await initPuter();
-  const response = await puter.ai.chat('Transcribe this speech to text.', {
-    files: [audioBlob],
-    model: 'gpt-4.1',
-  });
-  return response?.message?.content ?? response ?? '';
+  if (!puter) return '';
+  const result = await puter.ai.speech2txt(audioBlob);
+  return typeof result === 'string' ? result : result?.text ?? '';
+}
+
+export async function imageToText(imageBlob: Blob | File, prompt?: string): Promise<string> {
+  const puter = await initPuter();
+  if (!puter) return '';
+  const result = await puter.ai.img2txt(imageBlob, { model: 'gpt-4.1' });
+  return result ?? '';
+}
+
+export async function imageTranslate(imageBlob: Blob | File, targetLang: string): Promise<string> {
+  const text = await imageToText(imageBlob);
+  if (!text) return '';
+  const translated = await translateText(text, targetLang);
+  return translated.text;
 }
 
 export async function textToSpeech(text: string): Promise<Blob | null> {

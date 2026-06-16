@@ -5,7 +5,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Mic, Square, Volume2, Sparkles } from 'lucide-react';
 import LanguageSelect from './LanguageSelect';
 import TranslationCard from './TranslationCard';
-import { translateText } from '@/lib/puter';
+import { translateText, speechToText } from '@/lib/puter';
+import { showToast } from './Toast';
 
 export default function VoiceTab() {
   const [isRecording, setIsRecording] = useState(false);
@@ -17,58 +18,51 @@ export default function VoiceTab() {
   const [error, setError] = useState('');
   const mediaRecorder = useRef<MediaRecorder | null>(null);
   const audioChunks = useRef<Blob[]>([]);
+  const streamRef = useRef<MediaStream | null>(null);
 
   const startRecording = async () => {
     try {
+      setError('');
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      mediaRecorder.current = new MediaRecorder(stream);
+      streamRef.current = stream;
+      mediaRecorder.current = new MediaRecorder(stream, { mimeType: 'audio/webm' });
       audioChunks.current = [];
 
       mediaRecorder.current.ondataavailable = (event) => {
-        audioChunks.current.push(event.data);
+        if (event.data.size > 0) audioChunks.current.push(event.data);
       };
 
       mediaRecorder.current.onstop = async () => {
-        stream.getTracks().forEach((track) => track.stop());
+        stream.getTracks().forEach((t) => t.stop());
+        streamRef.current = null;
         setLoading(true);
-        setError('');
 
         try {
-          const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-          if (SpeechRecognition) {
-            const recognition = new SpeechRecognition();
-            recognition.lang = sourceLang === 'auto' ? 'en-US' : sourceLang;
-            recognition.interimResults = true;
-            recognition.continuous = false;
-
-            recognition.onresult = async (event: any) => {
-                const text = Array.from(event.results)
-                  .map((r: any) => r[0].transcript)
-                  .join('');
-                setTranscript(text);
-
-                if (event.results[0].isFinal) {
-                  const result = await translateText(text, targetLang, sourceLang);
-                  setTranslatedText(result.text);
-                }
-            };
-
-            recognition.onerror = () => {
-              setError('Speech recognition failed. Try text input instead.');
-            };
-
-            recognition.start();
-          } else {
-            setError('Speech recognition is not supported in this browser.');
+          const audioBlob = new Blob(audioChunks.current, { type: 'audio/webm' });
+          if (audioBlob.size < 100) {
+            setError('No speech detected. Please try again.');
+            setLoading(false);
+            return;
           }
+
+          const transcribed = await speechToText(audioBlob);
+          if (!transcribed) {
+            setError('Could not transcribe audio. Try speaking clearly.');
+            setLoading(false);
+            return;
+          }
+
+          setTranscript(transcribed);
+          const result = await translateText(transcribed, targetLang, sourceLang);
+          setTranslatedText(result.text);
         } catch {
-          setError('Failed to process speech.');
+          setError('Speech processing failed. Try text input instead.');
         } finally {
           setLoading(false);
         }
       };
 
-      mediaRecorder.current.start();
+      mediaRecorder.current.start(1000);
       setIsRecording(true);
     } catch {
       setError('Microphone access denied. Please allow microphone permissions.');
@@ -76,7 +70,9 @@ export default function VoiceTab() {
   };
 
   const stopRecording = () => {
-    mediaRecorder.current?.stop();
+    if (mediaRecorder.current && mediaRecorder.current.state !== 'inactive') {
+      mediaRecorder.current.stop();
+    }
     setIsRecording(false);
   };
 
@@ -182,7 +178,7 @@ export default function VoiceTab() {
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
           >
-            <div className="flex items-center justify-between mb-2">
+            <div className="mb-2 flex items-center justify-between">
               <label className="text-sm font-medium text-zinc-600 dark:text-zinc-400">Translation</label>
               <motion.button
                 whileTap={{ scale: 0.9 }}
