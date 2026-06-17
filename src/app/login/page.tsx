@@ -2,13 +2,12 @@
 
 import { Suspense, useState } from 'react';
 import { signIn } from 'next-auth/react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { Languages, Mail, Lock, Eye, EyeOff, ArrowRight } from 'lucide-react';
 
 function LoginForm() {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const error = searchParams.get('error');
 
@@ -23,18 +22,11 @@ function LoginForm() {
     setLoading(true);
     setMessage('');
 
-    const result = await signIn('credentials', {
+    await signIn('credentials', {
       email,
       password,
-      redirect: false,
+      callbackUrl: '/',
     });
-
-    if (result?.error) {
-      setMessage('Invalid email or password');
-      setLoading(false);
-    } else {
-      window.location.href = '/';
-    }
   };
 
   return (
