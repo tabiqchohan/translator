@@ -1,6 +1,6 @@
-const CACHE_NAME = 'translater-v2';
-const STATIC_CACHE = 'translater-static-v2';
-const DYNAMIC_CACHE = 'translater-dynamic-v2';
+const CACHE_NAME = 'translater-v3';
+const STATIC_CACHE = 'translater-static-v3';
+const DYNAMIC_CACHE = 'translater-dynamic-v3';
 
 const PRECACHE_URLS = [
   '/',
@@ -33,14 +33,20 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('fetch', (event) => {
-  if (event.request.method !== 'GET') return;
+  const { request } = event;
+  const url = new URL(request.url);
 
-  if (event.request.mode === 'navigate') {
+  // Skip API routes, auth endpoints — always go to network
+  if (url.pathname.startsWith('/api/')) return;
+
+  if (request.method !== 'GET') return;
+
+  if (request.mode === 'navigate') {
     event.respondWith(
-      fetch(event.request)
+      fetch(request)
         .then((response) => {
           const clone = response.clone();
-          caches.open(DYNAMIC_CACHE).then((cache) => cache.put(event.request, clone));
+          caches.open(DYNAMIC_CACHE).then((cache) => cache.put(request, clone));
           return response;
         })
         .catch(() => caches.match('/offline.html'))
@@ -48,24 +54,17 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  event.respondWith(
-    caches.match(event.request).then((cached) => {
-      if (cached) return cached;
-
-      return fetch(event.request)
-        .then((response) => {
-          if (response.ok) {
-            const clone = response.clone();
-            caches.open(DYNAMIC_CACHE).then((cache) => cache.put(event.request, clone));
-          }
+  // Cache static assets only (icons, fonts, etc)
+  if (url.pathname.match(/\.(png|jpg|jpeg|webp|svg|ico|woff2?)$/)) {
+    event.respondWith(
+      caches.match(request).then((cached) => {
+        if (cached) return cached;
+        return fetch(request).then((response) => {
+          const clone = response.clone();
+          caches.open(DYNAMIC_CACHE).then((cache) => cache.put(request, clone));
           return response;
-        })
-        .catch(() => {
-          if (event.request.destination === 'image') {
-            return caches.match('/icon-192.png');
-          }
-          return new Response('Offline', { status: 503 });
         });
-    })
-  );
+      })
+    );
+  }
 });
