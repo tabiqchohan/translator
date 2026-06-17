@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useCallback } from 'react';
 import { Upload, FileText, Languages, Sparkles, FileDown } from 'lucide-react';
 import { motion } from 'framer-motion';
 import LanguageSelect from './LanguageSelect';
@@ -8,6 +8,7 @@ import { fileTypes } from '@/lib/utils';
 import { translateText, imageTranslate } from '@/lib/puter';
 import { showToast } from './Toast';
 import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
 
 export default function DocumentTab() {
   const [file, setFile] = useState<File | null>(null);
@@ -106,14 +107,53 @@ export default function DocumentTab() {
     }
   };
 
-  const downloadAsPdf = () => {
+  const downloadAsPdf = useCallback(async () => {
     if (!result?.translatedText) return;
-    const doc = new jsPDF();
-    doc.setFontSize(12);
-    const lines = doc.splitTextToSize(result.translatedText, 180);
-    doc.text(lines, 15, 20);
-    doc.save(`translated_${result.filename}.pdf`);
-  };
+
+    const isRtl = /[\u0600-\u06FF\u0700-\u074F]/.test(result.translatedText);
+
+    const container = document.createElement('div');
+    container.style.cssText = `
+      position: fixed; left: -9999px; top: 0; width: 515px;
+      padding: 40px; font-family: 'Segoe UI', Arial, sans-serif;
+      font-size: 14px; line-height: 1.8; color: #000; background: #fff;
+      ${isRtl ? 'direction: rtl; text-align: right;' : ''}
+    `;
+    container.textContent = result.translatedText;
+    document.body.appendChild(container);
+
+    try {
+      const canvas = await html2canvas(container, {
+        scale: 2,
+        useCORS: true,
+        logging: false,
+      });
+
+      const imgData = canvas.toDataURL('image/png');
+      const doc = new jsPDF('p', 'mm', 'a4');
+      const margin = 10;
+      const pageW = 190;
+      const pageH = 277;
+      const imgW = pageW;
+      const imgH = (canvas.height * imgW) / canvas.width;
+      let remaining = imgH;
+
+      doc.addImage(imgData, 'PNG', margin, margin, imgW, imgH);
+      remaining -= pageH;
+
+      while (remaining > 0) {
+        doc.addPage();
+        doc.addImage(imgData, 'PNG', margin, margin - (imgH - remaining), imgW, imgH);
+        remaining -= pageH;
+      }
+
+      doc.save(`translated_${result.filename}.pdf`);
+    } catch {
+      showToast('Failed to generate PDF', 'error');
+    } finally {
+      document.body.removeChild(container);
+    }
+  }, [result]);
 
   const acceptedTypes = fileTypes.map((ft) => ft.accept).join(',');
 
