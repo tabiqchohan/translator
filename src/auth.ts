@@ -18,18 +18,29 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         const email = credentials.email as string;
         const password = credentials.password as string;
 
-        const user = await findUserByEmail(email);
-        if (!user) return null;
+        try {
+          const user = await findUserByEmail(email);
+          if (!user) {
+            console.log('[AUTH] No user found for:', email);
+            return null;
+          }
 
-        const isValid = await bcrypt.compare(password, user.password_hash);
-        if (!isValid) return null;
+          const isValid = await bcrypt.compare(password, user.password_hash);
+          if (!isValid) {
+            console.log('[AUTH] Invalid password for:', email);
+            return null;
+          }
 
-        return {
-          id: user.id,
-          email: user.email,
-          name: user.name,
-          image: user.image,
-        };
+          return {
+            id: user.id,
+            email: user.email,
+            name: user.name,
+            image: user.image,
+          };
+        } catch (err) {
+          console.error('[AUTH] Error during login:', err);
+          return null;
+        }
       },
     }),
   ],
