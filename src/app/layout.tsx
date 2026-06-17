@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { ThemeProvider } from "next-themes";
+import { auth } from "@/auth";
 import AuthProvider from "@/components/AuthProvider";
 import Header from "@/components/Header";
 import BottomNav from "@/components/BottomNav";
@@ -35,11 +36,13 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const session = await auth();
+
   return (
     <html
       lang="en"
@@ -48,7 +51,7 @@ export default function RootLayout({
     >
       <body className="flex min-h-full flex-col bg-white text-zinc-900 dark:bg-zinc-900 dark:text-zinc-100">
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-          <AuthProvider>
+          <AuthProvider session={session}>
             <Header />
             <div className="flex-1 pb-16 md:pb-0">
               {children}
