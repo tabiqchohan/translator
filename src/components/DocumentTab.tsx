@@ -1,12 +1,13 @@
 'use client';
 
 import { useState, useRef } from 'react';
-import { Upload, FileText, Download, Languages, Sparkles } from 'lucide-react';
+import { Upload, FileText, Languages, Sparkles, FileDown } from 'lucide-react';
 import { motion } from 'framer-motion';
 import LanguageSelect from './LanguageSelect';
 import { fileTypes } from '@/lib/utils';
 import { translateText, imageTranslate } from '@/lib/puter';
 import { showToast } from './Toast';
+import jsPDF from 'jspdf';
 
 export default function DocumentTab() {
   const [file, setFile] = useState<File | null>(null);
@@ -105,15 +106,13 @@ export default function DocumentTab() {
     }
   };
 
-  const downloadAsText = () => {
+  const downloadAsPdf = () => {
     if (!result?.translatedText) return;
-    const blob = new Blob([result.translatedText], { type: 'text/plain' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `translated_${result.filename}.txt`;
-    a.click();
-    URL.revokeObjectURL(url);
+    const doc = new jsPDF();
+    doc.setFontSize(12);
+    const lines = doc.splitTextToSize(result.translatedText, 180);
+    doc.text(lines, 15, 20);
+    doc.save(`translated_${result.filename}.pdf`);
   };
 
   const acceptedTypes = fileTypes.map((ft) => ft.accept).join(',');
@@ -203,11 +202,11 @@ export default function DocumentTab() {
           </div>
 
           <button
-            onClick={downloadAsText}
+            onClick={downloadAsPdf}
             className="flex items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-emerald-500 to-green-600 px-4 py-2 text-sm font-medium text-white shadow-lg hover:shadow-xl"
           >
-            <Download size={16} />
-            Download Translation
+            <FileDown size={16} />
+            Download as PDF
           </button>
         </div>
       )}
