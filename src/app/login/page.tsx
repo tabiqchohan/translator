@@ -33,8 +33,7 @@ function LoginForm() {
       setMessage('Invalid email or password');
       setLoading(false);
     } else {
-      router.push('/');
-      router.refresh();
+      window.location.href = '/';
     }
   };
 

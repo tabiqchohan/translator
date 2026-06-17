@@ -205,51 +205,59 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Translation Section */}
-      <section id="translate" className="relative px-4 py-8">
-        <div className="mx-auto max-w-3xl">
-          <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} className="mb-6 text-center">
-            <h2 className="text-2xl font-bold text-zinc-800 dark:text-zinc-100">Try It Now</h2>
-            <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">Select a mode and start translating.</p>
-          </motion.div>
+      {session ? (
+        <section id="translate" className="relative px-4 py-8">
+          <div className="mx-auto max-w-3xl">
+            <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} className="mb-6 text-center">
+              <h2 className="text-2xl font-bold text-zinc-800 dark:text-zinc-100">Try It Now</h2>
+              <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">Select a mode and start translating.</p>
+            </motion.div>
 
-          <TabNav activeTab={activeTab} onTabChange={setActiveTab} />
-          <div className="mt-4">
-            <AnimatePresence mode="wait">
-              <motion.div
-                key={activeTab}
-                variants={tabVariants}
-                initial="initial"
-                animate="animate"
-                exit="exit"
-                transition={{ duration: 0.2 }}
-              >
-                {activeTab === 'text' && <TextTab />}
-                {activeTab === 'voice' && <VoiceTab />}
-                {activeTab === 'camera' && <CameraTranslate />}
-                {activeTab === 'documents' && <DocumentTab />}
-              </motion.div>
-            </AnimatePresence>
+            <TabNav activeTab={activeTab} onTabChange={setActiveTab} />
+            <div className="mt-4">
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={activeTab}
+                  variants={tabVariants}
+                  initial="initial"
+                  animate="animate"
+                  exit="exit"
+                  transition={{ duration: 0.2 }}
+                >
+                  {activeTab === 'text' && <TextTab />}
+                  {activeTab === 'voice' && <VoiceTab />}
+                  {activeTab === 'camera' && <CameraTranslate />}
+                  {activeTab === 'documents' && <DocumentTab />}
+                </motion.div>
+              </AnimatePresence>
+            </div>
           </div>
-        </div>
-      </section>
-
-      {/* CTA */}
-      {!session && (
+        </section>
+      ) : (
         <section className="relative px-4 py-20">
           <motion.div initial={{ opacity: 0, scale: 0.95 }} whileInView={{ opacity: 1, scale: 1 }} viewport={{ once: true }} className="mx-auto max-w-2xl text-center">
             <div className="rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 p-10 shadow-xl">
               <h2 className="text-2xl font-bold text-white">Ready to Break Language Barriers?</h2>
-              <p className="mt-3 text-sm text-blue-100">Join thousands of users who translate with Translater every day.</p>
-              <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }} className="mt-6 inline-block">
-                <Link
-                  href="/register"
-                  className="inline-flex items-center gap-2 rounded-xl bg-white px-8 py-3 text-sm font-semibold text-blue-700 shadow-lg transition-all hover:bg-blue-50"
-                >
-                  Create Free Account
-                  <ArrowRight size={16} />
-                </Link>
-              </motion.div>
+              <p className="mt-3 text-sm text-blue-100">Sign in to access all translation features — text, voice, camera, and documents.</p>
+              <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
+                <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}>
+                  <Link
+                    href="/login"
+                    className="inline-flex items-center gap-2 rounded-xl bg-white px-8 py-3 text-sm font-semibold text-blue-700 shadow-lg transition-all hover:bg-blue-50"
+                  >
+                    Sign In
+                    <ArrowRight size={16} />
+                  </Link>
+                </motion.div>
+                <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}>
+                  <Link
+                    href="/register"
+                    className="inline-flex items-center gap-2 rounded-xl border border-white/30 px-8 py-3 text-sm font-semibold text-white transition-all hover:bg-white/10"
+                  >
+                    Create Account
+                  </Link>
+                </motion.div>
+              </div>
             </div>
           </motion.div>
         </section>

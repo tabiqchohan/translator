@@ -67,8 +67,14 @@ export async function translateText(
 export async function speechToText(audioBlob: Blob): Promise<string> {
   const puter = await initPuter();
   if (!puter) return '';
-  const result = await puter.ai.speech2txt(audioBlob);
-  return typeof result === 'string' ? result : result?.text ?? '';
+  try {
+    const result = await puter.ai.speech2txt(audioBlob);
+    if (typeof result === 'string') return result;
+    if (result?.text) return result.text;
+    return '';
+  } catch {
+    return '';
+  }
 }
 
 export async function imageToText(imageBlob: Blob | File, prompt?: string): Promise<string> {

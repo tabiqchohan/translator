@@ -6,7 +6,14 @@ import { Mic, Square, Volume2, Sparkles } from 'lucide-react';
 import LanguageSelect from './LanguageSelect';
 import TranslationCard from './TranslationCard';
 import { translateText, speechToText } from '@/lib/puter';
-import { showToast } from './Toast';
+
+function getMimeType() {
+  if (MediaRecorder.isTypeSupported('audio/webm;codecs=opus')) return 'audio/webm;codecs=opus';
+  if (MediaRecorder.isTypeSupported('audio/webm')) return 'audio/webm';
+  if (MediaRecorder.isTypeSupported('audio/ogg;codecs=opus')) return 'audio/ogg;codecs=opus';
+  if (MediaRecorder.isTypeSupported('audio/mp4')) return 'audio/mp4';
+  return '';
+}
 
 export default function VoiceTab() {
   const [isRecording, setIsRecording] = useState(false);
@@ -25,7 +32,15 @@ export default function VoiceTab() {
       setError('');
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       streamRef.current = stream;
-      mediaRecorder.current = new MediaRecorder(stream, { mimeType: 'audio/webm' });
+
+      const mimeType = getMimeType();
+      if (!mimeType) {
+        setError('Audio recording not supported in this browser.');
+        stream.getTracks().forEach((t) => t.stop());
+        return;
+      }
+
+      mediaRecorder.current = new MediaRecorder(stream, mimeType ? { mimeType } : {});
       audioChunks.current = [];
 
       mediaRecorder.current.ondataavailable = (event) => {
@@ -38,22 +53,22 @@ export default function VoiceTab() {
         setLoading(true);
 
         try {
-          const audioBlob = new Blob(audioChunks.current, { type: 'audio/webm' });
-          if (audioBlob.size < 100) {
+          const audioBlob = new Blob(audioChunks.current, { type: mimeType || 'audio/webm' });
+          if (audioBlob.size < 200) {
             setError('No speech detected. Please try again.');
             setLoading(false);
             return;
           }
 
-          const transcribed = await speechToText(audioBlob);
-          if (!transcribed) {
-            setError('Could not transcribe audio. Try speaking clearly.');
+          const text = await speechToText(audioBlob);
+          if (!text) {
+            setError('Could not transcribe audio. Try speaking clearly or use text input.');
             setLoading(false);
             return;
           }
 
-          setTranscript(transcribed);
-          const result = await translateText(transcribed, targetLang, sourceLang);
+          setTranscript(text);
+          const result = await translateText(text, targetLang, sourceLang);
           setTranslatedText(result.text);
         } catch {
           setError('Speech processing failed. Try text input instead.');
@@ -62,7 +77,7 @@ export default function VoiceTab() {
         }
       };
 
-      mediaRecorder.current.start(1000);
+      mediaRecorder.current.start();
       setIsRecording(true);
     } catch {
       setError('Microphone access denied. Please allow microphone permissions.');
