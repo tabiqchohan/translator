@@ -64,3 +64,11 @@ export async function deleteTranslation(id: string) {
     await db`DELETE FROM translations WHERE id = ${id}`;
   } catch {}
 }
+
+export async function deleteUserTranslations(userId: string) {
+  try {
+    const db = await getDb();
+    if (!db) return;
+    await db`DELETE FROM translations WHERE user_id = ${userId}`;
+  } catch {}
+}

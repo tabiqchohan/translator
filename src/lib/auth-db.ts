@@ -97,3 +97,16 @@ export async function createSession(session: { id: string; userId: string; sessi
     await db`INSERT INTO sessions (id, user_id, session_token, expires) VALUES (${session.id}, ${session.userId}, ${session.sessionToken}, ${session.expires.toISOString()})`;
   } catch {}
 }
+
+export async function deleteUser(id: string) {
+  try {
+    const db = await getDb();
+    if (!db) return false;
+    await db`DELETE FROM sessions WHERE user_id = ${id}`;
+    await db`DELETE FROM verification_tokens WHERE identifier IN (SELECT email FROM users WHERE id = ${id})`;
+    await db`DELETE FROM users WHERE id = ${id}`;
+    return true;
+  } catch {
+    return false;
+  }
+}

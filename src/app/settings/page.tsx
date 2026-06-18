@@ -2,8 +2,9 @@
 
 import { useState, useEffect } from 'react';
 import { useTheme } from 'next-themes';
+import { signOut } from 'next-auth/react';
 import Link from 'next/link';
-import { ArrowLeft, Sun, Moon, Monitor, Volume2, Globe, Trash2, Download } from 'lucide-react';
+import { ArrowLeft, Sun, Moon, Monitor, Volume2, Globe, Trash2, Download, AlertTriangle, X } from 'lucide-react';
 import { showToast } from '@/components/Toast';
 import { languages } from '@/lib/utils';
 
@@ -25,6 +26,9 @@ export default function SettingsPage() {
   const { theme, setTheme } = useTheme();
   const [settings, setSettings] = useState<Settings>(defaultSettings);
   const [mounted, setMounted] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deletePassword, setDeletePassword] = useState('');
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     setMounted(true);
@@ -69,6 +73,30 @@ export default function SettingsPage() {
       showToast('History exported!', 'success');
     } catch {
       showToast('Export failed', 'error');
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    if (!deletePassword) return;
+    setDeleting(true);
+    try {
+      const res = await fetch('/api/account/delete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: deletePassword }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        showToast(data.error || 'Failed to delete account', 'error');
+        setDeleting(false);
+        return;
+      }
+      showToast('Account deleted successfully', 'success');
+      setShowDeleteModal(false);
+      setTimeout(() => signOut({ callbackUrl: '/' }), 1000);
+    } catch {
+      showToast('Failed to delete account', 'error');
+      setDeleting(false);
     }
   };
 
@@ -155,7 +183,45 @@ export default function SettingsPage() {
             </button>
           </div>
         </section>
+
+        <section>
+          <h2 className="mb-3 text-sm font-semibold text-red-500 dark:text-red-400 uppercase tracking-wide">Danger Zone</h2>
+          <button onClick={() => setShowDeleteModal(true)} className="flex items-center gap-2 w-full rounded-lg border border-red-300 bg-red-50 px-4 py-2.5 text-sm font-medium text-red-700 transition-colors hover:bg-red-100 dark:border-red-800 dark:bg-red-900/20 dark:text-red-400 dark:hover:bg-red-900/40">
+            <AlertTriangle size={16} /> Delete Account
+          </button>
+        </section>
       </div>
+
+      {showDeleteModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
+          <div className="w-full max-w-sm rounded-xl bg-white p-6 shadow-2xl dark:bg-zinc-800">
+            <div className="mb-4 flex items-center justify-between">
+              <h3 className="text-lg font-semibold text-red-600 dark:text-red-400">Delete Account</h3>
+              <button onClick={() => { setShowDeleteModal(false); setDeletePassword(''); }} className="rounded-lg p-1 text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-700">
+                <X size={18} />
+              </button>
+            </div>
+            <p className="mb-4 text-sm text-zinc-600 dark:text-zinc-400">
+              This will permanently delete your account and all translation history. Enter your password to confirm.
+            </p>
+            <input
+              type="password"
+              placeholder="Enter your password"
+              value={deletePassword}
+              onChange={(e) => setDeletePassword(e.target.value)}
+              className="mb-4 w-full rounded-lg border border-zinc-200 bg-white px-3 py-2.5 text-sm dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
+            />
+            <div className="flex gap-2">
+              <button onClick={() => { setShowDeleteModal(false); setDeletePassword(''); }} className="flex-1 rounded-lg border border-zinc-200 px-4 py-2.5 text-sm font-medium text-zinc-600 transition-colors hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-400 dark:hover:bg-zinc-700">
+                Cancel
+              </button>
+              <button onClick={handleDeleteAccount} disabled={!deletePassword || deleting} className="flex-1 rounded-lg bg-red-600 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-red-700 disabled:opacity-50">
+                {deleting ? 'Deleting...' : 'Delete'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   );
 }
