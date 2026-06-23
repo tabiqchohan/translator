@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { ThemeProvider } from "next-themes";
@@ -56,6 +57,11 @@ export default async function RootLayout({
             <div className="flex-1 pb-16 md:pb-0">
               {children}
             </div>
+            <footer className="hidden md:block border-t border-zinc-200 dark:border-zinc-700 py-3 text-center text-xs text-zinc-400">
+              <Link href="/privacy" className="hover:text-zinc-600 dark:hover:text-zinc-300">Privacy Policy</Link>
+              <span className="mx-2">·</span>
+              Powered by tabiqchohan
+            </footer>
             <BottomNav />
             <ToastContainer />
             <AppRating />
