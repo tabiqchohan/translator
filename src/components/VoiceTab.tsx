@@ -5,15 +5,18 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Mic, Square, Volume2, Sparkles } from 'lucide-react';
 import LanguageSelect from './LanguageSelect';
 import TranslationCard from './TranslationCard';
-import { translateText, speechToText } from '@/lib/puter';
+import { translateText } from '@/lib/puter';
 
-function getMimeType() {
-  if (MediaRecorder.isTypeSupported('audio/webm;codecs=opus')) return 'audio/webm;codecs=opus';
-  if (MediaRecorder.isTypeSupported('audio/webm')) return 'audio/webm';
-  if (MediaRecorder.isTypeSupported('audio/ogg;codecs=opus')) return 'audio/ogg;codecs=opus';
-  if (MediaRecorder.isTypeSupported('audio/mp4')) return 'audio/mp4';
-  return '';
-}
+const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+
+const langMap: Record<string, string> = {
+  auto: 'en-US',
+  en: 'en-US', es: 'es-ES', fr: 'fr-FR', de: 'de-DE',
+  it: 'it-IT', pt: 'pt-BR', ru: 'ru-RU', ar: 'ar-SA',
+  hi: 'hi-IN', ur: 'ur-PK', bn: 'bn-IN', zh: 'zh-CN',
+  ja: 'ja-JP', ko: 'ko-KR', tr: 'tr-TR', vi: 'vi-VN',
+  th: 'th-TH', id: 'id-ID', ms: 'ms-MY', nl: 'nl-NL',
+};
 
 export default function VoiceTab() {
   const [isRecording, setIsRecording] = useState(false);
@@ -23,70 +26,70 @@ export default function VoiceTab() {
   const [targetLang, setTargetLang] = useState('ur');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const mediaRecorder = useRef<MediaRecorder | null>(null);
-  const audioChunks = useRef<Blob[]>([]);
-  const streamRef = useRef<MediaStream | null>(null);
+  const recognitionRef = useRef<any>(null);
+  const transcriptRef = useRef('');
 
-  const startRecording = async () => {
+  const startRecording = () => {
+    if (!SpeechRecognition) {
+      setError('Speech recognition is not supported in this browser. Try Chrome or Edge.');
+      return;
+    }
+
+    setError('');
+    setTranscript('');
+    setTranslatedText('');
+
     try {
-      setError('');
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      streamRef.current = stream;
+      const recognition = new SpeechRecognition();
+      recognitionRef.current = recognition;
 
-      const mimeType = getMimeType();
-      if (!mimeType) {
-        setError('Audio recording not supported in this browser.');
-        stream.getTracks().forEach((t) => t.stop());
-        return;
-      }
+      recognition.continuous = true;
+      recognition.interimResults = true;
+      recognition.lang = langMap[sourceLang] || sourceLang;
 
-      mediaRecorder.current = new MediaRecorder(stream, mimeType ? { mimeType } : {});
-      audioChunks.current = [];
-
-      mediaRecorder.current.ondataavailable = (event) => {
-        if (event.data.size > 0) audioChunks.current.push(event.data);
+      recognition.onresult = (event: any) => {
+        let final = '';
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+          final += event.results[i][0].transcript;
+        }
+        setTranscript(final);
+        transcriptRef.current = final;
       };
 
-      mediaRecorder.current.onstop = async () => {
-        stream.getTracks().forEach((t) => t.stop());
-        streamRef.current = null;
+      recognition.onerror = () => {
+        setError('Speech recognition failed. Check microphone permissions.');
+        setIsRecording(false);
+      };
+
+      recognition.onend = async () => {
+        setIsRecording(false);
+        const finalText = transcriptRef.current || '';
+        if (!finalText.trim()) {
+          setError('No speech detected. Please try again.');
+          return;
+        }
+
         setLoading(true);
-
         try {
-          const audioBlob = new Blob(audioChunks.current, { type: mimeType || 'audio/webm' });
-          if (audioBlob.size < 200) {
-            setError('No speech detected. Please try again.');
-            setLoading(false);
-            return;
-          }
-
-          const text = await speechToText(audioBlob);
-          if (!text) {
-            setError('Could not transcribe audio. Try speaking clearly or use text input.');
-            setLoading(false);
-            return;
-          }
-
-          setTranscript(text);
-          const result = await translateText(text, targetLang, sourceLang);
+          const result = await translateText(finalText, targetLang, sourceLang);
           setTranslatedText(result.text);
         } catch {
-          setError('Speech processing failed. Try text input instead.');
+          setError('Translation failed. Please try again.');
         } finally {
           setLoading(false);
         }
       };
 
-      mediaRecorder.current.start();
+      recognition.start();
       setIsRecording(true);
     } catch {
-      setError('Microphone access denied. Please allow microphone permissions.');
+      setError('Failed to start speech recognition.');
     }
   };
 
   const stopRecording = () => {
-    if (mediaRecorder.current && mediaRecorder.current.state !== 'inactive') {
-      mediaRecorder.current.stop();
+    if (recognitionRef.current) {
+      recognitionRef.current.stop();
     }
     setIsRecording(false);
   };
@@ -158,7 +161,7 @@ export default function VoiceTab() {
             <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 1, ease: 'linear' }}>
               <Sparkles size={16} />
             </motion.div>
-            Processing speech...
+            Translating...
           </motion.div>
         )}
       </div>
