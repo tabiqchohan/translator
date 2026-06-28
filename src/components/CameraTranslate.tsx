@@ -1,84 +1,55 @@
 'use client';
 
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Camera, CameraOff, ScanText } from 'lucide-react';
+import { Camera, ScanText, Image, X } from 'lucide-react';
 import LanguageSelect from './LanguageSelect';
 import TranslationCard from './TranslationCard';
 import { imageTranslate } from '@/lib/puter';
 
 export default function CameraTranslate() {
-  const [isActive, setIsActive] = useState(false);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [capturedText, setCapturedText] = useState('');
   const [translatedText, setTranslatedText] = useState('');
   const [targetLang, setTargetLang] = useState('en');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const streamRef = useRef<MediaStream | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const startCamera = async () => {
-    try {
-      setError('');
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: 'environment', width: 1080, height: 720 },
-      });
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-      }
-      streamRef.current = stream;
-      setIsActive(true);
-    } catch {
-      setError('Camera access denied. Please allow camera permissions.');
-    }
-  };
+  const handleFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
 
-  const stopCamera = () => {
-    streamRef.current?.getTracks().forEach((t) => t.stop());
-    streamRef.current = null;
-    setIsActive(false);
-  };
-
-  const captureAndTranslate = useCallback(async () => {
-    if (!videoRef.current || !canvasRef.current) return;
-
-    const video = videoRef.current;
-    const canvas = canvasRef.current;
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-
-    ctx.drawImage(video, 0, 0);
+    const previewUrl = URL.createObjectURL(file);
+    setImagePreview(previewUrl);
+    setError('');
+    setTranslatedText('');
+    setCapturedText('');
 
     setLoading(true);
-    setError('');
-
     try {
-      canvas.toBlob(async (blob) => {
-        if (!blob) {
-          setError('Failed to capture image');
-          setLoading(false);
-          return;
-        }
-
-        setCapturedText('Processing image...');
-
-        const result = await imageTranslate(blob, targetLang);
-        if (result) {
-          setTranslatedText(result);
-          setCapturedText('Image captured and translated');
-        } else {
-          setError('No text detected in image. Try again with clearer lighting.');
-        }
-        setLoading(false);
-      }, 'image/jpeg', 0.9);
+      const result = await imageTranslate(file, targetLang);
+      if (result) {
+        setTranslatedText(result);
+        setCapturedText('Image captured and translated');
+      } else {
+        setError('No text detected in image. Try again with clearer lighting.');
+      }
     } catch {
       setError('Failed to process image. Try again.');
+    } finally {
       setLoading(false);
+      if (e.target) e.target.value = '';
     }
-  }, [targetLang]);
+  };
+
+  const reset = () => {
+    if (imagePreview) URL.revokeObjectURL(imagePreview);
+    setImagePreview(null);
+    setCapturedText('');
+    setTranslatedText('');
+    setError('');
+  };
 
   return (
     <motion.div
@@ -90,49 +61,57 @@ export default function CameraTranslate() {
         <LanguageSelect value={targetLang} onChange={setTargetLang} label="Translate to" />
       </div>
 
-      <div className="relative overflow-hidden rounded-lg bg-black">
-        {isActive ? (
-          <video
-            ref={videoRef}
-            autoPlay
-            playsInline
-            className="h-64 w-full object-cover"
-          />
+      <div className="relative overflow-hidden rounded-lg bg-zinc-900">
+        {imagePreview ? (
+          <>
+            <img src={imagePreview} alt="captured" className="h-64 w-full object-contain" />
+            <button
+              onClick={reset}
+              className="absolute right-2 top-2 rounded-full bg-black/50 p-1.5 text-white hover:bg-black/70"
+            >
+              <X size={18} />
+            </button>
+          </>
         ) : (
-          <div className="flex h-64 items-center justify-center bg-zinc-900">
+          <div className="flex h-64 flex-col items-center justify-center gap-3 bg-zinc-900">
             <Camera size={48} className="text-zinc-600" />
+            <p className="text-xs text-zinc-500">Take a photo or choose from gallery</p>
           </div>
         )}
-        <canvas ref={canvasRef} className="hidden" />
 
         <div className="absolute bottom-3 left-1/2 flex -translate-x-1/2 gap-3">
-          {!isActive ? (
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            className="flex items-center gap-2 rounded-full bg-blue-600 px-5 py-2.5 text-sm font-medium text-white shadow-lg hover:bg-blue-700"
+          >
+            <Camera size={16} />
+            {imagePreview ? 'Retake' : 'Open Camera'}
+          </button>
+          {!imagePreview && (
             <button
-              onClick={startCamera}
-              className="flex items-center gap-2 rounded-full bg-blue-600 px-5 py-2.5 text-sm font-medium text-white shadow-lg hover:bg-blue-700"
+              onClick={() => {
+                const input = fileInputRef.current;
+                if (input) {
+                  input.removeAttribute('capture');
+                  input.click();
+                  input.setAttribute('capture', 'environment');
+                }
+              }}
+              className="flex items-center gap-2 rounded-full bg-zinc-700 px-4 py-2.5 text-sm font-medium text-white shadow-lg hover:bg-zinc-600"
             >
-              <Camera size={16} />
-              Open Camera
+              <Image size={16} />
             </button>
-          ) : (
-            <>
-              <button
-                onClick={captureAndTranslate}
-                disabled={loading}
-                className="flex items-center gap-2 rounded-full bg-white px-5 py-2.5 text-sm font-medium text-zinc-800 shadow-lg hover:bg-zinc-100 disabled:opacity-50"
-              >
-                <ScanText size={16} />
-                {loading ? 'Processing...' : 'Scan & Translate'}
-              </button>
-              <button
-                onClick={stopCamera}
-                className="flex items-center gap-2 rounded-full bg-red-500 px-4 py-2.5 text-sm font-medium text-white shadow-lg hover:bg-red-600"
-              >
-                <CameraOff size={16} />
-              </button>
-            </>
           )}
         </div>
+
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          capture="environment"
+          onChange={handleFile}
+          className="hidden"
+        />
       </div>
 
       <AnimatePresence>
@@ -146,6 +125,12 @@ export default function CameraTranslate() {
           </motion.p>
         )}
       </AnimatePresence>
+
+      {loading && (
+        <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-sm text-zinc-500">
+          Processing image with AI...
+        </motion.p>
+      )}
 
       {capturedText && (
         <TranslationCard text={capturedText} label="Status" readOnly />

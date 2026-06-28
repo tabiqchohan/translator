@@ -78,10 +78,15 @@ export async function speechToText(audioBlob: Blob): Promise<string> {
 }
 
 export async function imageToText(imageBlob: Blob | File, prompt?: string): Promise<string> {
-  const puter = await initPuter();
-  if (!puter) return '';
-  const result = await puter.ai.img2txt(imageBlob, { model: 'gpt-4.1' });
-  return result ?? '';
+  try {
+    const { createWorker } = await import('tesseract.js');
+    const worker = await createWorker('eng', 1);
+    const { data } = await worker.recognize(imageBlob);
+    await worker.terminate();
+    return data.text || '';
+  } catch {
+    return '';
+  }
 }
 
 export async function imageTranslate(imageBlob: Blob | File, targetLang: string): Promise<string> {
