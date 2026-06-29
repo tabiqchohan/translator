@@ -5,14 +5,15 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Camera, ScanText, Image, X } from 'lucide-react';
 import LanguageSelect from './LanguageSelect';
 import TranslationCard from './TranslationCard';
-import { imageTranslate } from '@/lib/puter';
+import { imageToText, translateText } from '@/lib/puter';
 
 export default function CameraTranslate() {
   const [imagePreview, setImagePreview] = useState<string | null>(null);
-  const [capturedText, setCapturedText] = useState('');
+  const [extractedText, setExtractedText] = useState('');
   const [translatedText, setTranslatedText] = useState('');
   const [targetLang, setTargetLang] = useState('en');
-  const [loading, setLoading] = useState(false);
+  const [ocrLoading, setOcrLoading] = useState(false);
+  const [transLoading, setTransLoading] = useState(false);
   const [error, setError] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -24,29 +25,35 @@ export default function CameraTranslate() {
     setImagePreview(previewUrl);
     setError('');
     setTranslatedText('');
-    setCapturedText('');
+    setExtractedText('');
 
-    setLoading(true);
-    try {
-      const result = await imageTranslate(file, targetLang);
-      if (result) {
-        setTranslatedText(result);
-        setCapturedText('Image captured and translated');
-      } else {
-        setError('No text detected in image. Try again with clearer lighting.');
-      }
-    } catch {
-      setError('Failed to process image. Try again.');
-    } finally {
-      setLoading(false);
-      if (e.target) e.target.value = '';
+    setOcrLoading(true);
+    const text = await imageToText(file);
+    setOcrLoading(false);
+
+    if (!text) {
+      setError('No text detected in image. Try clearer lighting or sharper image.');
+      return;
     }
+
+    setExtractedText(text);
+    setTransLoading(true);
+    const result = await translateText(text, targetLang, 'auto');
+    setTransLoading(false);
+
+    if (result.text) {
+      setTranslatedText(result.text);
+    } else {
+      setError('Translation failed. Please try again.');
+    }
+
+    if (e.target) e.target.value = '';
   };
 
   const reset = () => {
     if (imagePreview) URL.revokeObjectURL(imagePreview);
     setImagePreview(null);
-    setCapturedText('');
+    setExtractedText('');
     setTranslatedText('');
     setError('');
   };
@@ -126,17 +133,23 @@ export default function CameraTranslate() {
         )}
       </AnimatePresence>
 
-      {loading && (
+      {ocrLoading && (
         <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-sm text-zinc-500">
-          Processing image with AI...
+          Reading text from image...
         </motion.p>
       )}
 
-      {capturedText && (
-        <TranslationCard text={capturedText} label="Status" readOnly />
+      {transLoading && (
+        <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-sm text-zinc-500">
+          Translating...
+        </motion.p>
       )}
 
-      {translatedText && (
+      {extractedText && !ocrLoading && (
+        <TranslationCard text={extractedText} label="Extracted text" readOnly />
+      )}
+
+      {translatedText && !transLoading && (
         <TranslationCard text={translatedText} label="Translation" readOnly />
       )}
     </motion.div>

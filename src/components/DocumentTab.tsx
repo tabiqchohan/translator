@@ -5,7 +5,7 @@ import { Upload, FileText, Languages, Sparkles, FileDown } from 'lucide-react';
 import { motion } from 'framer-motion';
 import LanguageSelect from './LanguageSelect';
 import { fileTypes } from '@/lib/utils';
-import { translateText, imageTranslate } from '@/lib/puter';
+import { translateText, imageToText } from '@/lib/puter';
 import { showToast } from './Toast';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
@@ -15,6 +15,7 @@ export default function DocumentTab() {
   const [targetLang, setTargetLang] = useState('ur');
   const [loading, setLoading] = useState(false);
   const [parsing, setParsing] = useState(false);
+  const [translating, setTranslating] = useState(false);
   const [result, setResult] = useState<{
     originalText: string;
     translatedText: string;
@@ -50,24 +51,31 @@ export default function DocumentTab() {
   };
 
   const handleImageTranslate = async (file: File) => {
-    setLoading(true);
     setError('');
+    setLoading(true);
 
     try {
-      const result = await imageTranslate(file, targetLang);
-      if (result) {
-        setResult({
-          originalText: 'Image processed by AI',
-          translatedText: result,
-          filename: file.name,
-        });
-      } else {
-        setError('No text detected in image. Try a different file.');
+      const text = await imageToText(file);
+      if (!text) {
+        setError('No text detected in image. Try a different file with clearer text.');
+        setLoading(false);
+        return;
       }
+
+      setLoading(false);
+      setTranslating(true);
+
+      const translated = await translateText(text, targetLang);
+      setResult({
+        originalText: text,
+        translatedText: translated.text,
+        filename: file.name,
+      });
     } catch {
-      setError('AI image processing failed. Try a text-based file instead.');
+      setError('Failed to process image.');
     } finally {
       setLoading(false);
+      setTranslating(false);
     }
   };
 
@@ -91,19 +99,19 @@ export default function DocumentTab() {
 
       const data = await response.json();
       setParsing(false);
-      setLoading(true);
+      setTranslating(true);
 
       const translated = await translateText(data.originalText, targetLang);
       setResult({
         originalText: data.originalText,
-        translatedText: translated.text,
+        translatedText: translated.text || data.originalText,
         filename: data.filename,
       });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to process document');
     } finally {
       setParsing(false);
-      setLoading(false);
+      setTranslating(false);
     }
   };
 
@@ -157,7 +165,7 @@ export default function DocumentTab() {
 
   const acceptedTypes = fileTypes.map((ft) => ft.accept).join(',');
 
-  const isBusy = parsing || loading;
+  const isBusy = parsing || loading || translating;
 
   return (
     <motion.div
@@ -217,7 +225,7 @@ export default function DocumentTab() {
             <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 1, ease: 'linear' }}>
               <Sparkles size={18} />
             </motion.div>
-            {parsing ? 'Parsing document...' : 'Translating...'}
+            {parsing ? 'Parsing document...' : loading ? 'Reading image...' : translating ? 'Translating...' : 'Translate Document'}
           </>
         ) : (
           <>

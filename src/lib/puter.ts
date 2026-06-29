@@ -33,57 +33,53 @@ export async function translateText(
   const puter = await initPuter();
   if (!puter) return { text: '' };
 
-  const source = sourceLang === 'auto' ? '' : ` from ${sourceLang}`;
-  const prompt = sourceLang === 'auto'
-    ? `Translate the following text to ${targetLang}. First, detect the source language. Return your response as JSON: {"detected":"language_name","translation":"translated_text"}. Do not include anything else:\n\n${text}`
-    : `Translate the following text${source} to ${targetLang}. Output only the translation, nothing else:\n\n${text}`;
+  const trimmed = text.trim();
+  if (!trimmed) return { text: '' };
 
-  const response = await puter.ai.chat(prompt, { model });
-  const content = response?.message?.content ?? response ?? '';
+  try {
+    const source = sourceLang === 'auto' ? '' : ` from ${sourceLang}`;
+    const prompt = `Translate the following text${source} to ${targetLang}. Output ONLY the translation, nothing else, no quotes, no labels:\n\n${trimmed}`;
 
-  if (sourceLang === 'auto') {
+    const response = await puter.ai.chat(prompt, { model });
+    let content = response?.message?.content ?? response ?? '';
+
+    if (typeof content === 'string') {
+      content = content.trim().replace(/^["']|["']$/g, '');
+    }
+
+    if (!content) {
+      throw new Error('Empty response');
+    }
+
+    return { text: content };
+  } catch {
     try {
-      const parsed = JSON.parse(content);
-      const langMap: Record<string, string> = {
-        english: 'en', spanish: 'es', french: 'fr', german: 'de',
-        italian: 'it', portuguese: 'pt', russian: 'ru', arabic: 'ar',
-        hindi: 'hi', urdu: 'ur', bengali: 'bn', chinese: 'zh',
-        japanese: 'ja', korean: 'ko', turkish: 'tr', vietnamese: 'vi',
-        thai: 'th', indonesian: 'id', malay: 'ms', dutch: 'nl',
-        swedish: 'sv', polish: 'pl', ukrainian: 'uk', romanian: 'ro',
-        czech: 'cs', greek: 'el', hebrew: 'he', persian: 'fa',
-        tagalog: 'tl', punjabi: 'pa', pashto: 'ps', sindhi: 'sd',
-      };
-      const detected = langMap[parsed.detected?.toLowerCase()] || parsed.detected;
-      return { text: parsed.translation, detectedLang: detected, confidence: 0.9 };
+      const response = await puter.ai.chat(
+        `Translate this to ${targetLang} and return ONLY the translation: ${trimmed}`,
+        { model }
+      );
+      let content = response?.message?.content ?? response ?? '';
+      if (typeof content === 'string') {
+        content = content.trim().replace(/^["']|["']$/g, '');
+      }
+      return { text: content || trimmed };
     } catch {
-      return { text: content.replace(/^["']|["']$/g, '') };
+      return { text: trimmed };
     }
   }
-
-  return { text: content };
 }
 
-export async function speechToText(audioBlob: Blob): Promise<string> {
-  const puter = await initPuter();
-  if (!puter) return '';
-  try {
-    const result = await puter.ai.speech2txt(audioBlob);
-    if (typeof result === 'string') return result;
-    if (result?.text) return result.text;
-    return '';
-  } catch {
-    return '';
-  }
-}
-
-export async function imageToText(imageBlob: Blob | File, prompt?: string): Promise<string> {
+export async function imageToText(imageBlob: Blob | File): Promise<string> {
   try {
     const { createWorker } = await import('tesseract.js');
-    const worker = await createWorker('eng', 1);
+    const worker = await createWorker('eng+urd+ara', 1, {
+      logger: () => {},
+    });
     const { data } = await worker.recognize(imageBlob);
     await worker.terminate();
-    return data.text || '';
+    const text = data.text?.trim() || '';
+    if (text.length < 3) return '';
+    return text;
   } catch {
     return '';
   }
@@ -92,13 +88,7 @@ export async function imageToText(imageBlob: Blob | File, prompt?: string): Prom
 export async function imageTranslate(imageBlob: Blob | File, targetLang: string): Promise<string> {
   const text = await imageToText(imageBlob);
   if (!text) return '';
-  const translated = await translateText(text, targetLang);
-  return translated.text;
-}
 
-export async function textToSpeech(text: string): Promise<Blob | null> {
-  if ('speechSynthesis' in window) {
-    return null;
-  }
-  return null;
+  const translated = await translateText(text, targetLang, 'auto');
+  return translated.text;
 }
