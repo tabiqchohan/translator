@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { auth } from '@/auth';
 import {
   getTranslations,
   saveTranslation,
@@ -8,7 +9,12 @@ import {
 
 export async function GET() {
   try {
-    const entries = await getTranslations();
+    const session = await auth();
+    const userId = session?.user?.id;
+    if (!userId) {
+      return NextResponse.json({ entries: [] });
+    }
+    const entries = await getTranslations(userId);
     return NextResponse.json({ entries });
   } catch {
     return NextResponse.json({ entries: [] });
@@ -17,8 +23,9 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   try {
+    const session = await auth();
     const body = await request.json();
-    const entry = await saveTranslation(body);
+    const entry = await saveTranslation({ ...body, userId: session?.user?.id || body.userId });
     return NextResponse.json({ entry }, { status: 201 });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unknown error';
