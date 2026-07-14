@@ -72,7 +72,11 @@ export default function VoiceTab() {
         setLoading(true);
         try {
           const result = await translateText(finalText, targetLang, sourceLang);
-          setTranslatedText(result.text);
+          if (result.error) {
+            setError(result.error);
+          } else {
+            setTranslatedText(result.text);
+          }
         } catch {
           setError('Translation failed. Please try again.');
         } finally {

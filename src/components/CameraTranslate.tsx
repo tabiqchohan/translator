@@ -41,7 +41,9 @@ export default function CameraTranslate() {
     const result = await translateText(text, targetLang, 'auto');
     setTransLoading(false);
 
-    if (result.text) {
+    if (result.error) {
+      setError(result.error);
+    } else if (result.text) {
       setTranslatedText(result.text);
     } else {
       setError('Translation failed. Please try again.');

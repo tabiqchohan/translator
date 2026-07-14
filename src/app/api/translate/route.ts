@@ -1,11 +1,24 @@
 import { NextRequest } from 'next/server';
 
+const langNames: Record<string, string> = {
+  en: 'English', ur: 'Urdu', hi: 'Hindi', es: 'Spanish', fr: 'French',
+  de: 'German', zh: 'Chinese', ja: 'Japanese', ko: 'Korean', ar: 'Arabic',
+  pt: 'Portuguese', ru: 'Russian', tr: 'Turkish', it: 'Italian', nl: 'Dutch',
+  pl: 'Polish', sv: 'Swedish', da: 'Danish', fi: 'Finnish', th: 'Thai',
+  vi: 'Vietnamese', ms: 'Malay', id: 'Indonesian',
+};
+
+function nameOf(code: string) {
+  return langNames[code] || code;
+}
+
 async function tryGroq(text: string, target: string, source: string) {
   const token = process.env.GROQ_API_KEY;
   if (!token) return { missingToken: true };
 
   try {
-    const sourcePart = source === 'auto' ? '' : ` from ${source}`;
+    const targetName = nameOf(target);
+    const sourcePart = source === 'auto' ? '' : ` from ${nameOf(source)}`;
     const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -13,8 +26,8 @@ async function tryGroq(text: string, target: string, source: string) {
         Authorization: `Bearer ${token}`,
       },
       body: JSON.stringify({
-        model: 'mixtral-8x7b-32768',
-        messages: [{ role: 'user', content: `Translate the following text${sourcePart} to ${target}. Output ONLY the translation, nothing else:\n\n${text}` }],
+        model: 'llama-3.3-70b-versatile',
+        messages: [{ role: 'user', content: `Translate the following text${sourcePart} to ${targetName}. Output ONLY the translation, nothing else:\n\n${text}` }],
       }),
       signal: AbortSignal.timeout(15000),
     });

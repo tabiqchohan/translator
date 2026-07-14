@@ -15,7 +15,7 @@ export async function translateText(
     const data = await res.json();
 
     if (data.error === 'SETUP_TOKEN') {
-      return { text: '', error: 'Admin needs to set PUTER_AUTH_TOKEN in Vercel env' };
+      return { text: '', error: 'Admin needs to set GROQ_API_KEY in Vercel env' };
     }
     if (data.error === 'UNAVAILABLE') {
       return { text: '', error: 'Translation service unavailable. Try again later.' };

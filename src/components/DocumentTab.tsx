@@ -66,11 +66,15 @@ export default function DocumentTab() {
       setTranslating(true);
 
       const translated = await translateText(text, targetLang);
-      setResult({
-        originalText: text,
-        translatedText: translated.text,
-        filename: file.name,
-      });
+      if (translated.error) {
+        setError(translated.error);
+      } else {
+        setResult({
+          originalText: text,
+          translatedText: translated.text,
+          filename: file.name,
+        });
+      }
     } catch {
       setError('Failed to process image.');
     } finally {
@@ -102,11 +106,15 @@ export default function DocumentTab() {
       setTranslating(true);
 
       const translated = await translateText(data.originalText, targetLang);
-      setResult({
-        originalText: data.originalText,
-        translatedText: translated.text || data.originalText,
-        filename: data.filename,
-      });
+      if (translated.error) {
+        setError(translated.error);
+      } else {
+        setResult({
+          originalText: data.originalText,
+          translatedText: translated.text,
+          filename: data.filename,
+        });
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to process document');
     } finally {
