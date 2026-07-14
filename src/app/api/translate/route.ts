@@ -1,22 +1,22 @@
 import { NextRequest } from 'next/server';
 
-async function tryPuter(text: string, target: string, source: string) {
-  const token = process.env.PUTER_AUTH_TOKEN;
+async function tryGroq(text: string, target: string, source: string) {
+  const token = process.env.GROQ_API_KEY;
   if (!token) return { missingToken: true };
 
   try {
     const sourcePart = source === 'auto' ? '' : ` from ${source}`;
-    const res = await fetch('https://api.puter.com/puterai/openai/v1/chat/completions', {
+    const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${token}`,
       },
       body: JSON.stringify({
-        model: 'gpt-4.1',
-        messages: [{ role: 'user', content: `Translate the following text${sourcePart} to ${target}. Output ONLY the translation:\n\n${text}` }],
+        model: 'mixtral-8x7b-32768',
+        messages: [{ role: 'user', content: `Translate the following text${sourcePart} to ${target}. Output ONLY the translation, nothing else:\n\n${text}` }],
       }),
-      signal: AbortSignal.timeout(20000),
+      signal: AbortSignal.timeout(15000),
     });
     if (!res.ok) return null;
     const data = await res.json();
@@ -29,23 +29,17 @@ async function tryPuter(text: string, target: string, source: string) {
   return null;
 }
 
-async function tryGoogleApis(text: string, target: string, source: string) {
+async function tryGoogle(text: string, target: string, source: string) {
   try {
     const src = source === 'auto' ? 'auto' : source;
     const params = new URLSearchParams({ client: 'gtx', sl: src, tl: target, dt: 't', q: text });
-    const res = await fetch(
-      `https://translate.googleapis.com/translate_a/single?${params.toString()}`,
-      {
-        headers: {
-          'User-Agent': 'Mozilla/5.0',
-          Referer: 'https://translate.google.com/',
-        },
-        signal: AbortSignal.timeout(8000),
-      }
-    );
+    const res = await fetch(`https://translate.googleapis.com/translate_a/single?${params.toString()}`, {
+      headers: { 'User-Agent': 'Mozilla/5.0' },
+      signal: AbortSignal.timeout(8000),
+    });
     if (!res.ok) return null;
     const raw = await res.text();
-    if (raw.includes('<html') || raw.includes('<!DOCTYPE') || !raw.startsWith('[[')) return null;
+    if (raw.includes('<html') || !raw.startsWith('[[')) return null;
     const data = JSON.parse(raw);
     const translated = data?.[0]?.map((s: any) => s?.[0] || '').filter(Boolean).join('');
     if (translated && translated !== text) return { text: translated };
@@ -75,13 +69,13 @@ export async function POST(req: NextRequest) {
       return Response.json({ error: 'Text is required' }, { status: 400 });
     }
 
-    const puterResult = await tryPuter(text, targetLang, sourceLang);
-    if (puterResult?.missingToken) {
+    const groqResult = await tryGroq(text, targetLang, sourceLang);
+    if (groqResult?.missingToken) {
       return Response.json({ error: 'SETUP_TOKEN' }, { status: 503 });
     }
-    if (puterResult) return Response.json(puterResult);
+    if (groqResult) return Response.json(groqResult);
 
-    const result = await tryGoogleApis(text, targetLang, sourceLang)
+    const result = await tryGoogle(text, targetLang, sourceLang)
       || await tryMyMemory(text, targetLang, sourceLang);
 
     if (!result) return Response.json({ error: 'UNAVAILABLE' }, { status: 503 });
