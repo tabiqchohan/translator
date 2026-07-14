@@ -44,10 +44,6 @@ export default function TextTab() {
     try {
       const result = await translateText(sourceText, targetLang, sourceLang);
       setTranslatedText(result.text);
-      if (result.detectedLang) {
-        setDetectedLang(result.detectedLang);
-        setConfidence(result.confidence);
-      }
 
       if (session?.user?.id) {
         fetch('/api/history', {
@@ -57,7 +53,7 @@ export default function TextTab() {
             userId: session.user.id,
             sourceText,
             translatedText: result.text,
-            sourceLang: result.detectedLang || sourceLang,
+            sourceLang,
             targetLang,
             type: 'text',
           }),
