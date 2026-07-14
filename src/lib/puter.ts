@@ -4,7 +4,7 @@ export async function translateText(
   text: string,
   targetLang: string,
   sourceLang = 'auto'
-): Promise<{ text: string }> {
+): Promise<{ text: string; error?: string }> {
   try {
     const res = await fetch('/api/translate', {
       method: 'POST',
@@ -12,11 +12,21 @@ export async function translateText(
       body: JSON.stringify({ text, targetLang, sourceLang }),
     });
 
-    if (!res.ok) return { text: '' };
     const data = await res.json();
+
+    if (data.error === 'SETUP_TOKEN') {
+      return { text: '', error: 'Admin needs to set PUTER_AUTH_TOKEN in Vercel env' };
+    }
+    if (data.error === 'UNAVAILABLE') {
+      return { text: '', error: 'Translation service unavailable. Try again later.' };
+    }
+    if (!res.ok) {
+      return { text: '', error: data.error || 'Translation failed' };
+    }
+
     return { text: data.text || '' };
   } catch {
-    return { text: '' };
+    return { text: '', error: 'Translation failed' };
   }
 }
 

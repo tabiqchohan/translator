@@ -43,9 +43,14 @@ export default function TextTab() {
     setConfidence(undefined);
     try {
       const result = await translateText(sourceText, targetLang, sourceLang);
+      if (result.error) {
+        setError(result.error);
+        setLoading(false);
+        return;
+      }
       setTranslatedText(result.text);
 
-      if (session?.user?.id) {
+      if (session?.user?.id && result.text) {
         fetch('/api/history', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
