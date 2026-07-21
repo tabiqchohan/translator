@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { History, Trash2, Heart, ArrowLeft, Search } from 'lucide-react';
 import Link from 'next/link';
 import { HistoryEntry } from '@/types';
@@ -11,24 +11,29 @@ export default function HistoryPage() {
   const { data: session } = useSession();
   const [entries, setEntries] = useState<HistoryEntry[]>([]);
   const [loading, setLoading] = useState(true);
+  const [errorMsg, setErrorMsg] = useState('');
   const [search, setSearch] = useState('');
+
+  const fetchHistory = useCallback(async () => {
+    setErrorMsg('');
+    setLoading(true);
+    try {
+      const res = await fetch('/api/history');
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to load history');
+      setEntries(data.entries ?? []);
+    } catch (err) {
+      setEntries([]);
+      setErrorMsg(err instanceof Error ? err.message : 'Something went wrong');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
     if (session) fetchHistory();
     else setLoading(false);
-  }, [session]);
-
-  const fetchHistory = async () => {
-    try {
-      const res = await fetch('/api/history');
-      const data = await res.json();
-      setEntries(data.entries ?? []);
-    } catch {
-      setEntries([]);
-    } finally {
-      setLoading(false);
-    }
-  };
+  }, [session, fetchHistory]);
 
   const deleteEntry = async (id: string) => {
     await fetch(`/api/history?id=${id}`, { method: 'DELETE' });
@@ -72,6 +77,17 @@ export default function HistoryPage() {
 
       {loading ? (
         <ListSkeleton count={5} />
+      ) : errorMsg ? (
+        <div className="flex flex-col items-center gap-2 py-12 text-zinc-400">
+          <History size={32} />
+          <p className="text-sm text-red-500 dark:text-red-400">{errorMsg}</p>
+          <button
+            onClick={fetchHistory}
+            className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+          >
+            Retry
+          </button>
+        </div>
       ) : filtered.length === 0 ? (
         <div className="flex flex-col items-center gap-2 py-12 text-zinc-400">
           <History size={32} />

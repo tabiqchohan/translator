@@ -14,11 +14,27 @@ async function getDb() {
   }
 }
 
+function mapRow(row: any) {
+  if (!row) return row;
+  return {
+    id: row.id,
+    userId: row.user_id,
+    sourceText: row.source_text,
+    translatedText: row.translated_text,
+    sourceLang: row.source_lang,
+    targetLang: row.target_lang,
+    type: row.type,
+    isFavorite: row.is_favorite,
+    createdAt: row.created_at,
+  };
+}
+
 export async function getTranslations(userId = 'anonymous') {
   try {
     const db = await getDb();
     if (!db) return [];
-    return await db`SELECT * FROM translations WHERE user_id = ${userId} ORDER BY created_at DESC LIMIT 50`;
+    const rows = await db`SELECT * FROM translations WHERE user_id = ${userId} ORDER BY created_at DESC LIMIT 50`;
+    return (rows || []).map(mapRow);
   } catch {
     return [];
   }
@@ -40,7 +56,7 @@ export async function saveTranslation(data: {
       VALUES (${data.userId ?? 'anonymous'}, ${data.sourceText}, ${data.translatedText}, ${data.sourceLang}, ${data.targetLang}, ${data.type ?? 'text'})
       RETURNING *
     `;
-    return rows?.[0] ?? null;
+    return mapRow(rows?.[0]) ?? null;
   } catch {
     return null;
   }
@@ -51,7 +67,7 @@ export async function toggleFavorite(id: string) {
     const db = await getDb();
     if (!db) return null;
     const rows = await db`UPDATE translations SET is_favorite = NOT is_favorite, updated_at = NOW() WHERE id = ${id} RETURNING *`;
-    return rows?.[0] ?? null;
+    return mapRow(rows?.[0]) ?? null;
   } catch {
     return null;
   }
