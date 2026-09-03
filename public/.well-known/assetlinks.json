@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.tabiqchohan.translater",
+      "sha256_cert_fingerprints": [
+        "65:90:3A:FE:EC:00:69:90:0B:94:28:F9:81:32:87:F6:FE:22:CE:7F:AA:77:3D:83:D6:CD:81:59:D0:C4:24:36"
+      ]
+    }
+  }
+]
