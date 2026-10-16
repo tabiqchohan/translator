@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../core/constants.dart';
 import '../models/history_entry.dart';
 import '../providers/history_provider.dart';
+import '../widgets/ad_banner.dart';
 
 class HistoryTab extends StatefulWidget {
   final bool onlyFavorites;
@@ -318,6 +319,9 @@ class _HistoryTabState extends State<HistoryTab> {
                         ),
                       ),
           ),
+
+          // Ad banner
+          const Center(child: AdBanner()),
         ],
       ),
     );
