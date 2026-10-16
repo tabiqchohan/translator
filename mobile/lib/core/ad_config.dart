@@ -4,18 +4,22 @@
 /// and will never get your AdMob account flagged. Replace them with your real
 /// unit ids (from AdMob > Apps > Ad units) before going live.
 class AdConfig {
-  // ---- Google-provided test ids ----
   static const String testAppId = 'ca-app-pub-3940256099942544~3347511713';
   static const String testBanner = 'ca-app-pub-3940256099942544/6300978111';
   static const String testInterstitial =
       'ca-app-pub-3940256099942544/1033173712';
   static const String testRewarded = 'ca-app-pub-3940256099942544/5224354917';
 
-  // ---- TODO: replace with real ids before release ----
-  static const String appId = testAppId;
-  static const String bannerUnitId = testBanner;
-  static const String interstitialUnitId = testInterstitial;
-  static const String rewardedUnitId = testRewarded;
+  // ---- Real AdMob ids (from admob file) ----
+  static const String realAppId = 'ca-app-pub-1796422203430894~3151400144';
+  static const String realBanner = 'ca-app-pub-1796422203430894/2925003581';
+  static const String realInterstitial =
+      'ca-app-pub-1796422203430894/3851072442';
+
+  // ---- TODO: use real ids for production ----
+  static const String appId = realAppId;
+  static const String bannerUnitId = realBanner;
+  static const String interstitialUnitId = realInterstitial;
 
   /// Show an interstitial after every N successful translations.
   static const int interstitialEveryN = 4;
