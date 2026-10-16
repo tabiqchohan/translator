@@ -1,0 +1,49 @@
+name: translater
+description: "AI-Powered Text, Voice, Camera & Document Translator"
+publish_to: 'none'
+
+version: 2.1.0+102
+
+environment:
+  sdk: ^3.0.0
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cupertino_icons: ^1.0.8
+  dio: ^5.7.0
+  cookie_jar: ^4.0.8
+  dio_cookie_manager: ^3.1.4
+  path_provider: ^2.1.6
+  provider: ^6.1.2
+  shared_preferences: ^2.3.5
+  flutter_tts: ^4.2.2
+  speech_to_text: ^7.0.0
+  google_mlkit_text_recognition: ^0.14.0
+  image_picker: ^1.1.2
+  file_picker: ^8.1.7
+  flutter_spinkit: ^5.2.1
+  google_fonts: ^6.2.1
+  share_plus: ^12.0.2
+  fluttertoast: ^8.2.10
+  intl: ^0.20.2
+  url_launcher: ^6.3.1
+  connectivity_plus: ^7.3.2
+  csv: ^8.0.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+  flutter_launcher_icons: ^0.14.3
+
+flutter_launcher_icons:
+  android: "launcher_icon"
+  ios: true
+  image_path: "assets/images/logo.jpg"
+  min_sdk_android: 24
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/images/

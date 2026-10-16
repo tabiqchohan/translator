@@ -1,0 +1,72 @@
+class AppConstants {
+  static const String baseUrl = 'https://translator-two-dusky.vercel.app';
+  static const String appName = 'LingoVerse';
+
+  static const List<Map<String, String>> languages = [
+    {'code': 'auto', 'name': 'Auto Detect'},
+    {'code': 'en', 'name': 'English'},
+    {'code': 'ur', 'name': 'Urdu'},
+    {'code': 'hi', 'name': 'Hindi'},
+    {'code': 'es', 'name': 'Spanish'},
+    {'code': 'fr', 'name': 'French'},
+    {'code': 'de', 'name': 'German'},
+    {'code': 'zh', 'name': 'Chinese (Simplified)'},
+    {'code': 'zh-TW', 'name': 'Chinese (Traditional)'},
+    {'code': 'ja', 'name': 'Japanese'},
+    {'code': 'ko', 'name': 'Korean'},
+    {'code': 'ar', 'name': 'Arabic'},
+    {'code': 'pt', 'name': 'Portuguese'},
+    {'code': 'ru', 'name': 'Russian'},
+    {'code': 'tr', 'name': 'Turkish'},
+    {'code': 'it', 'name': 'Italian'},
+    {'code': 'nl', 'name': 'Dutch'},
+    {'code': 'pl', 'name': 'Polish'},
+    {'code': 'sv', 'name': 'Swedish'},
+    {'code': 'da', 'name': 'Danish'},
+    {'code': 'fi', 'name': 'Finnish'},
+    {'code': 'th', 'name': 'Thai'},
+    {'code': 'vi', 'name': 'Vietnamese'},
+    {'code': 'ms', 'name': 'Malay'},
+    {'code': 'id', 'name': 'Indonesian'},
+    {'code': 'bn', 'name': 'Bengali'},
+    {'code': 'pa', 'name': 'Punjabi'},
+    {'code': 'fa', 'name': 'Persian (Farsi)'},
+    {'code': 'ps', 'name': 'Pashto'},
+    {'code': 'sd', 'name': 'Sindhi'},
+    {'code': 'ta', 'name': 'Tamil'},
+    {'code': 'te', 'name': 'Telugu'},
+    {'code': 'mr', 'name': 'Marathi'},
+    {'code': 'gu', 'name': 'Gujarati'},
+    {'code': 'kn', 'name': 'Kannada'},
+    {'code': 'ml', 'name': 'Malayalam'},
+    {'code': 'ne', 'name': 'Nepali'},
+    {'code': 'si', 'name': 'Sinhala'},
+    {'code': 'my', 'name': 'Burmese (Myanmar)'},
+    {'code': 'km', 'name': 'Khmer'},
+    {'code': 'tl', 'name': 'Tagalog (Filipino)'},
+    {'code': 'uk', 'name': 'Ukrainian'},
+    {'code': 'cs', 'name': 'Czech'},
+    {'code': 'el', 'name': 'Greek'},
+    {'code': 'he', 'name': 'Hebrew'},
+    {'code': 'ro', 'name': 'Romanian'},
+    {'code': 'hu', 'name': 'Hungarian'},
+    {'code': 'no', 'name': 'Norwegian'},
+    {'code': 'sk', 'name': 'Slovak'},
+    {'code': 'bg', 'name': 'Bulgarian'},
+    {'code': 'hr', 'name': 'Croatian'},
+    {'code': 'sr', 'name': 'Serbian'},
+    {'code': 'sw', 'name': 'Swahili'},
+    {'code': 'af', 'name': 'Afrikaans'},
+    {'code': 'az', 'name': 'Azerbaijani'},
+    {'code': 'uz', 'name': 'Uzbek'},
+    {'code': 'kk', 'name': 'Kazakh'},
+  ];
+
+  static String getLanguageName(String code) {
+    final found = languages.firstWhere(
+      (lang) => lang['code'] == code,
+      orElse: () => {'name': code.toUpperCase()},
+    );
+    return found['name'] ?? code;
+  }
+}

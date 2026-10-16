@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">LingoVerse</string>
+    <string name="accessibility_live_chat_description">LingoVerse reads the text shown on your screen inside chat apps you choose, translates it, and shows the translation in a floating bubble. It runs only while you chat and only for the apps you enable. Live Chat translation history is stored on your device only.</string>
+</resources>
