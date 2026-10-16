@@ -51,6 +51,28 @@ export async function createUser(data: { id: string; name: string; email: string
   }
 }
 
+/**
+ * Returns the effective plan for a user: 'pro' when plan is 'pro' and not
+ * expired, otherwise 'free'. Fails safe to 'free'.
+ */
+export async function getUserPlan(id: string): Promise<'free' | 'pro'> {
+  try {
+    const db = await getDb();
+    if (!db) return 'free';
+    const rows = await db`SELECT plan, plan_expires FROM users WHERE id = ${id} LIMIT 1`;
+    const row = rows?.[0];
+    if (!row) return 'free';
+    const plan = (row.plan as string) || 'free';
+    if (plan !== 'pro') return 'free';
+    if (row.plan_expires && new Date(row.plan_expires).getTime() < Date.now()) {
+      return 'free';
+    }
+    return 'pro';
+  } catch {
+    return 'free';
+  }
+}
+
 export async function updatePassword(email: string, passwordHash: string) {
   try {
     const db = await getDb();

@@ -66,3 +66,18 @@ CREATE TABLE IF NOT EXISTS documents (
   file_url        TEXT,
   created_at      TIMESTAMPTZ DEFAULT NOW()
 );
+
+-- Plan / subscription fields (monetization)
+ALTER TABLE users ADD COLUMN IF NOT EXISTS plan TEXT NOT NULL DEFAULT 'free';
+ALTER TABLE users ADD COLUMN IF NOT EXISTS plan_expires TIMESTAMPTZ;
+
+-- Daily usage counter (free-tier quota). One row per subject per day.
+CREATE TABLE IF NOT EXISTS usage_daily (
+  subject     TEXT NOT NULL,
+  day         DATE NOT NULL DEFAULT CURRENT_DATE,
+  count       INTEGER NOT NULL DEFAULT 0,
+  updated_at  TIMESTAMPTZ DEFAULT NOW(),
+  PRIMARY KEY (subject, day)
+);
+
+CREATE INDEX IF NOT EXISTS idx_usage_daily_day ON usage_daily(day);

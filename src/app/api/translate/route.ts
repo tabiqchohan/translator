@@ -1,4 +1,11 @@
 import { NextRequest } from 'next/server';
+import { auth } from '@/auth';
+import { getUserPlan } from '@/lib/auth-db';
+import {
+  consumeQuota,
+  FREE_DAILY_LIMIT,
+  ANON_DAILY_LIMIT,
+} from '@/lib/quota';
 
 const langNames: Record<string, string> = {
   en: 'English', ur: 'Urdu', hi: 'Hindi', es: 'Spanish', fr: 'French',
@@ -75,11 +82,62 @@ async function tryMyMemory(text: string, target: string, source: string) {
   return null;
 }
 
+function clientIp(req: NextRequest): string {
+  return (
+    req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
+    req.headers.get('x-real-ip') ||
+    'unknown'
+  );
+}
+
 export async function POST(req: NextRequest) {
   try {
     const { text, targetLang, sourceLang = 'auto' } = await req.json();
     if (!text?.trim()) {
       return Response.json({ error: 'Text is required' }, { status: 400 });
+    }
+    if (!targetLang) {
+      return Response.json({ error: 'targetLang is required' }, { status: 400 });
+    }
+
+    // ---- Identify caller + enforce daily free quota ----
+    const session = await auth();
+    const userId = session?.user?.id;
+
+    let subject: string | null = null;
+    let limit = 0; // 0 = unlimited
+
+    if (userId) {
+      const plan = await getUserPlan(userId);
+      if (plan !== 'pro') {
+        subject = `user:${userId}`;
+        limit = FREE_DAILY_LIMIT;
+      }
+    } else {
+      subject = `ip:${clientIp(req)}`;
+      limit = ANON_DAILY_LIMIT;
+    }
+
+    if (subject && limit > 0) {
+      const q = await consumeQuota(subject, limit);
+      if (!q.allowed) {
+        return Response.json(
+          {
+            error: 'QUOTA_EXCEEDED',
+            message:
+              'Today\'s free translation limit is reached. Upgrade to Pro for unlimited translations, or try again tomorrow.',
+            limit: q.limit,
+            used: q.used,
+          },
+          {
+            status: 429,
+            headers: {
+              'X-Quota-Limit': String(q.limit),
+              'X-Quota-Used': String(q.used),
+            },
+          },
+        );
+      }
     }
 
     const groqResult = await tryGroq(text, targetLang, sourceLang);
