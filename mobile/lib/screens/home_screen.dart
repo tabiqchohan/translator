@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../providers/connectivity_provider.dart';
+import '../providers/auth_provider.dart';
+import '../providers/subscription_provider.dart';
 import '../providers/settings_provider.dart';
 import '../tabs/text_tab.dart';
 import '../tabs/voice_tab.dart';
@@ -26,6 +28,7 @@ class _HomeScreenState extends State<HomeScreen> {
   bool _showOnboarding = false;
   bool _onboardingChecked = false;
   bool _ratingPrompted = false;
+  String? _identifiedUserId;
   SettingsProvider? _settings;
 
   final List<Widget> _translateTabs = const [
@@ -60,6 +63,14 @@ class _HomeScreenState extends State<HomeScreen> {
           });
         }
       }
+    }
+
+    // Link RevenueCat to the signed-in user so purchases map to their account.
+    final userId = Provider.of<AuthProvider>(context, listen: false).user?.id;
+    if (userId != null && userId.isNotEmpty && userId != _identifiedUserId) {
+      _identifiedUserId = userId;
+      Provider.of<SubscriptionProvider>(context, listen: false)
+          .identify(userId);
     }
   }
 

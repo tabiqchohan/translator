@@ -1,4 +1,5 @@
 import '../core/api_client.dart';
+import 'ad_service.dart';
 
 class TranslateService {
   final ApiClient _client = ApiClient();
@@ -20,6 +21,7 @@ class TranslateService {
 
       if (response.statusCode == 200 && response.data != null) {
         final translated = response.data['text'] ?? '';
+        AdService.instance.onTranslationSuccess();
         return {
           'success': true,
           'translatedText': translated,

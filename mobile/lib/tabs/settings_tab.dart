@@ -10,6 +10,9 @@ import '../screens/privacy_screen.dart';
 import '../screens/profile_screen.dart';
 import '../screens/terms_screen.dart';
 import '../services/export_service.dart';
+import '../providers/subscription_provider.dart';
+import '../screens/paywall_screen.dart';
+import '../widgets/ad_banner.dart';
 import '../widgets/language_selector.dart';
 
 class SettingsTab extends StatelessWidget {
@@ -146,6 +149,112 @@ class SettingsTab extends StatelessWidget {
               ),
             ),
           const SizedBox(height: 20),
+
+          // Go Pro
+          Consumer<SubscriptionProvider>(
+            builder: (context, sub, __) {
+              if (sub.isPro) {
+                return Container(
+                  margin: const EdgeInsets.only(bottom: 20),
+                  padding: const EdgeInsets.all(18),
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFF6366F1), Color(0xFF8B5CF6)],
+                    ),
+                    borderRadius: BorderRadius.circular(24),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.workspace_premium_rounded,
+                          color: Colors.white),
+                      const SizedBox(width: 12),
+                      const Expanded(
+                        child: Text(
+                          'LingoVerse Pro — Unlimited, ad-free and more.',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                      TextButton(
+                        onPressed: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (_) => const PaywallScreen()),
+                        ),
+                        child: const Text(
+                          'Manage',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              }
+              return GestureDetector(
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const PaywallScreen()),
+                ),
+                child: Container(
+                  margin: const EdgeInsets.only(bottom: 20),
+                  padding: const EdgeInsets.all(18),
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFF6366F1), Color(0xFF8B5CF6)],
+                    ),
+                    borderRadius: BorderRadius.circular(24),
+                    boxShadow: [
+                      BoxShadow(
+                        color: const Color(0xFF6366F1).withValues(alpha: 0.25),
+                        blurRadius: 12,
+                        offset: const Offset(0, 6),
+                      ),
+                    ],
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.18),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: const Icon(Icons.workspace_premium_rounded,
+                            color: Colors.white),
+                      ),
+                      const SizedBox(width: 12),
+                      const Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('Go Pro — Unlimited, ad-free & more',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w800,
+                                  fontSize: 15,
+                                )),
+                            SizedBox(height: 2),
+                            Text('Monthly • Yearly • Lifetime',
+                                style: TextStyle(
+                                  color: Colors.white70,
+                                  fontSize: 12,
+                                )),
+                          ],
+                        ),
+                      ),
+                      const Icon(Icons.chevron_right_rounded,
+                          color: Colors.white),
+                    ],
+                  ),
+                ),
+              );
+            },
+          ),
 
           // Appearance Header
           Padding(
@@ -538,7 +647,12 @@ class SettingsTab extends StatelessWidget {
                 ),
               ),
             ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 24          ),
+
+          // Ad banner
+          const Center(child: AdBanner()),
+          const SizedBox(height: 12),
+          const SizedBox(height: 16),
         ],
       ),
     );

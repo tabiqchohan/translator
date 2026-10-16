@@ -6,6 +6,8 @@ import 'package:provider/provider.dart';
 import '../core/api_client.dart';
 import '../providers/history_provider.dart';
 import '../providers/settings_provider.dart';
+import '../providers/subscription_provider.dart';
+import '../screens/paywall_screen.dart';
 import '../services/translate_service.dart';
 import '../widgets/error_banner.dart';
 import '../widgets/language_selector.dart';
@@ -39,6 +41,14 @@ class _DocumentTabState extends State<DocumentTab> {
   }
 
   Future<void> _pickFile() async {
+    final sub = Provider.of<SubscriptionProvider>(context, listen: false);
+    if (!sub.isPro) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => const PaywallScreen()),
+      );
+      return;
+    }
     final result = await FilePicker.platform.pickFiles(
       type: FileType.custom,
       allowedExtensions: ['pdf', 'docx', 'txt'],
@@ -56,6 +66,14 @@ class _DocumentTabState extends State<DocumentTab> {
   }
 
   Future<void> _translateDocument() async {
+    final sub = Provider.of<SubscriptionProvider>(context, listen: false);
+    if (!sub.isPro) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => const PaywallScreen()),
+      );
+      return;
+    }
     if (_file == null) return;
 
     setState(() {

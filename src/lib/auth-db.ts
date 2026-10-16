@@ -73,8 +73,27 @@ export async function getUserPlan(id: string): Promise<'free' | 'pro'> {
   }
 }
 
-export async function updatePassword(email: string, passwordHash: string) {
+/**
+ * Sets a user's subscription plan. `expires` should be null for lifetime /
+ * non-expiring entitlements. Used by the RevenueCat webhook.
+ */
+export async function setUserPlan(
+  id: string,
+  plan: 'free' | 'pro',
+  expires: Date | null,
+) {
   try {
+    const db = await getDb();
+    if (!db) return;
+    await db`
+      UPDATE users
+      SET plan = ${plan}, plan_expires = ${expires ? expires.toISOString() : null}, updated_at = NOW()
+      WHERE id = ${id}
+    `;
+  } catch {}
+}
+
+export async function updatePassword(email: string, passwordHash: string) {  try {
     const db = await getDb();
     if (!db) return;
     await db`UPDATE users SET password_hash = ${passwordHash}, updated_at = NOW() WHERE LOWER(email) = ${email.toLowerCase()}`;

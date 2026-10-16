@@ -6,7 +6,9 @@ import 'providers/auth_provider.dart';
 import 'providers/connectivity_provider.dart';
 import 'providers/history_provider.dart';
 import 'providers/settings_provider.dart';
+import 'providers/subscription_provider.dart';
 import 'screens/splash_screen.dart';
+import 'services/ad_service.dart';
 import 'services/live_chat_service.dart';
 
 void main() async {
@@ -18,11 +20,24 @@ void main() async {
     debugPrint("ApiClient init error: $e");
   }
 
+  try {
+    await AdService.instance.init();
+  } catch (e) {
+    debugPrint("AdService init error: $e");
+  }
+
   final settingsProvider = SettingsProvider();
   try {
     await settingsProvider.init();
   } catch (e) {
     debugPrint("SettingsProvider init error: $e");
+  }
+
+  final subscriptionProvider = SubscriptionProvider();
+  try {
+    await subscriptionProvider.init();
+  } catch (e) {
+    debugPrint("SubscriptionProvider init error: $e");
   }
 
   runApp(
@@ -33,6 +48,7 @@ void main() async {
         ChangeNotifierProvider(create: (_) => ConnectivityProvider()),
         ChangeNotifierProvider(create: (_) => LiveChatService()..init()),
         ChangeNotifierProvider.value(value: settingsProvider),
+        ChangeNotifierProvider.value(value: subscriptionProvider),
       ],
       child: const TranslaterApp(),
     ),
