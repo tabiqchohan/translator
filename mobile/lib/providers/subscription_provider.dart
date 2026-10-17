@@ -6,9 +6,10 @@ import '../services/ad_service.dart';
 
 /// Wraps RevenueCat and exposes the user's Pro entitlement to the UI.
 class SubscriptionProvider extends ChangeNotifier {
-  /// TODO: replace with your real RevenueCat **Google** public SDK key
-  /// (RevenueCat > Project > API keys > "Google" / goog_...).
-  static const String _googleApiKey = 'goog_REPLACE_WITH_YOUR_KEY';
+  /// RevenueCat SDK key.
+  /// Currently using the **Test Store** key (test_...) for development.
+  /// TODO: replace with the real Google Play key (goog_...) before release.
+  static const String _googleApiKey = 'goog_IDwAEjvhImrmGWbxDqjZcUSUxLB';
 
   static const String entitlementPro = 'pro';
 

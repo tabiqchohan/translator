@@ -21,6 +21,9 @@ class AdConfig {
   static const String bannerUnitId = realBanner;
   static const String interstitialUnitId = realInterstitial;
 
+  /// Rewarded has no dedicated real unit yet; keep Google's test unit.
+  static const String rewardedUnitId = testRewarded;
+
   /// Show an interstitial after every N successful translations.
   static const int interstitialEveryN = 4;
 
