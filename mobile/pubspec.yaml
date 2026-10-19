@@ -2,7 +2,7 @@ name: translater
 description: "AI-Powered Text, Voice, Camera & Document Translator"
 publish_to: 'none'
 
-version: 2.1.0+104
+version: 2.1.0+105
 
 environment:
   sdk: ^3.0.0
