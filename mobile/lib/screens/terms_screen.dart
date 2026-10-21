@@ -48,7 +48,7 @@ class TermsScreen extends StatelessWidget {
           _card(
             context,
             '8. Contact',
-            'For questions about these terms, contact us at support@LingoVerse.app.',
+            'For questions about these terms, contact us at support@translater.app.',
           ),
         ],
       ),

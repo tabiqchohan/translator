@@ -37,7 +37,7 @@ that talks to those APIs.
 - **Onboarding & rating** — first-launch walkthrough and an in-app rating
   prompt after a few translations.
 - **Profile, Privacy, Terms** — dedicated screens plus account & data section.
-- **58 languages** — with a searchable picker and recent-language shortcuts.
+- **56 languages** — with a searchable picker and recent-language shortcuts.
 - **Auth** — register, login (NextAuth credentials), sign out, delete account,
   forgot password.
 - **Theming** — light / dark / system, persisted with `shared_preferences`.

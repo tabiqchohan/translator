@@ -9,10 +9,18 @@ import {
 
 const langNames: Record<string, string> = {
   en: 'English', ur: 'Urdu', hi: 'Hindi', es: 'Spanish', fr: 'French',
-  de: 'German', zh: 'Chinese', ja: 'Japanese', ko: 'Korean', ar: 'Arabic',
-  pt: 'Portuguese', ru: 'Russian', tr: 'Turkish', it: 'Italian', nl: 'Dutch',
-  pl: 'Polish', sv: 'Swedish', da: 'Danish', fi: 'Finnish', th: 'Thai',
-  vi: 'Vietnamese', ms: 'Malay', id: 'Indonesian',
+  de: 'German', zh: 'Chinese (Simplified)', 'zh-TW': 'Chinese (Traditional)',
+  ja: 'Japanese', ko: 'Korean', ar: 'Arabic', pt: 'Portuguese', ru: 'Russian',
+  tr: 'Turkish', it: 'Italian', nl: 'Dutch', pl: 'Polish', sv: 'Swedish',
+  da: 'Danish', fi: 'Finnish', th: 'Thai', vi: 'Vietnamese', ms: 'Malay',
+  id: 'Indonesian', bn: 'Bengali', pa: 'Punjabi', fa: 'Persian (Farsi)',
+  ps: 'Pashto', sd: 'Sindhi', ta: 'Tamil', te: 'Telugu', mr: 'Marathi',
+  gu: 'Gujarati', kn: 'Kannada', ml: 'Malayalam', ne: 'Nepali', si: 'Sinhala',
+  my: 'Burmese (Myanmar)', km: 'Khmer', tl: 'Tagalog (Filipino)',
+  uk: 'Ukrainian', cs: 'Czech', el: 'Greek', he: 'Hebrew', ro: 'Romanian',
+  hu: 'Hungarian', no: 'Norwegian', sk: 'Slovak', bg: 'Bulgarian',
+  hr: 'Croatian', sr: 'Serbian', sw: 'Swahili', af: 'Afrikaans',
+  az: 'Azerbaijani', uz: 'Uzbek', kk: 'Kazakh',
 };
 
 function nameOf(code: string) {

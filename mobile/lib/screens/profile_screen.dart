@@ -119,7 +119,7 @@ class ProfileScreen extends StatelessWidget {
                   ),
                 ),
                 Text(
-                  '2.0.0',
+                  '2.1.0',
                   style: TextStyle(fontSize: 13, color: primary),
                 ),
               ],
