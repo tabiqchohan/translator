@@ -81,3 +81,18 @@ CREATE TABLE IF NOT EXISTS usage_daily (
 );
 
 CREATE INDEX IF NOT EXISTS idx_usage_daily_day ON usage_daily(day);
+
+-- Shared translation cache. Repeated phrases (very common in chats) are served
+-- from here instead of calling an AI provider, cutting cost and latency.
+CREATE TABLE IF NOT EXISTS translation_cache (
+  hash          TEXT PRIMARY KEY,
+  source_lang   VARCHAR(10) NOT NULL,
+  target_lang   VARCHAR(10) NOT NULL,
+  translation   TEXT NOT NULL,
+  hits          INTEGER NOT NULL DEFAULT 0,
+  created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  last_used     TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_translation_cache_last_used ON translation_cache(last_used);
+CREATE INDEX IF NOT EXISTS idx_translation_cache_created_at ON translation_cache(created_at);

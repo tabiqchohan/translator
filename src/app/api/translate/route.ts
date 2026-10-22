@@ -7,6 +7,10 @@ import {
   FREE_DAILY_LIMIT,
   ANON_DAILY_LIMIT,
 } from '@/lib/quota';
+import {
+  getCachedTranslation,
+  cacheTranslation,
+} from '@/lib/translation-cache';
 
 const langNames: Record<string, string> = {
   en: 'English', ur: 'Urdu', hi: 'Hindi', es: 'Spanish', fr: 'French',
@@ -394,6 +398,13 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    // ---- Serve repeated phrases from cache (no provider call = no cost) ----
+    const cached = await getCachedTranslation(text, targetLang, sourceLang);
+    if (cached) {
+      console.log('[translate] served-by=cache');
+      return Response.json({ text: cached, provider: 'cache' });
+    }
+
     const result = await translateWithFailover(text, targetLang, sourceLang);
 
     if (!result) {
@@ -409,6 +420,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    await cacheTranslation(text, targetLang, sourceLang, result.text);
     return Response.json(result);
   } catch {
     return Response.json({ error: 'Translation failed' }, { status: 500 });
