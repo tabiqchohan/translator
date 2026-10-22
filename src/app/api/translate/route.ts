@@ -32,7 +32,15 @@ function nameOf(code: string) {
   return langNames[code] || code;
 }
 
-const GROQ_MODEL = 'llama-3.3-70b-versatile';
+/** Groq models to try in order; override the first with GROQ_MODEL. */
+function groqModels(): string[] {
+  const configured = (process.env.GROQ_MODEL || '').trim();
+  return [
+    configured,
+    'openai/gpt-oss-120b',
+    'openai/gpt-oss-20b',
+  ].filter((m, i, arr) => !!m && arr.indexOf(m) === i);
+}
 
 /** Gemini models to try in order; override the first with GEMINI_MODEL. */
 function geminiModels(): string[] {
@@ -112,30 +120,39 @@ async function tryGroq(
   if (!key) return null;
   const prompt = buildTranslatePrompt(text, target, source);
 
-  try {
-    const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${key}`,
-      },
-      body: JSON.stringify({
-        model: GROQ_MODEL,
-        temperature: 0.2,
-        max_tokens: 2048,
-        messages: [{ role: 'user', content: prompt }],
-      }),
-      signal: AbortSignal.timeout(15000),
-    });
-    if (!res.ok) {
-      console.warn(`[translate] groq http ${res.status}`);
-      return null;
+  for (const model of groqModels()) {
+    try {
+      const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${key}`,
+        },
+        body: JSON.stringify({
+          model,
+          temperature: 0.2,
+          max_tokens: 2048,
+          messages: [{ role: 'user', content: prompt }],
+        }),
+        signal: AbortSignal.timeout(15000),
+      });
+      // Model retired / unavailable - try the next one.
+      if (res.status === 404) continue;
+      if (!res.ok) {
+        console.warn(`[translate] groq http ${res.status} (${model})`);
+        // Bad key or permission: other models will fail too.
+        if (res.status === 401 || res.status === 403) return null;
+        // Rate limit (429) or server error: a different model may have room.
+        continue;
+      }
+      const data = await res.json();
+      const content = cleanTranslation(data?.choices?.[0]?.message?.content ?? '');
+      if (content && content !== text) return content;
+    } catch (e) {
+      console.warn(
+        `[translate] groq error (${model}): ${e instanceof Error ? e.message : e}`
+      );
     }
-    const data = await res.json();
-    const content = cleanTranslation(data?.choices?.[0]?.message?.content ?? '');
-    if (content && content !== text) return content;
-  } catch (e) {
-    console.warn(`[translate] groq error: ${e instanceof Error ? e.message : e}`);
   }
   return null;
 }
@@ -169,7 +186,12 @@ async function tryGemini(
       if (res.status === 404) continue;
       if (!res.ok) {
         console.warn(`[translate] gemini http ${res.status} (${model})`);
-        return null;
+        // Bad key / bad request: other models will fail the same way.
+        if (res.status === 400 || res.status === 401 || res.status === 403) {
+          return null;
+        }
+        // Rate limit or overload: another model may still have quota.
+        continue;
       }
       const data = await res.json();
       const raw = (data?.candidates?.[0]?.content?.parts ?? [])
@@ -323,7 +345,10 @@ async function translateWithFailover(text: string, target: string, source: strin
       try {
         const out = await p.translate(text, target, source, key);
         if (out && out !== text) {
-          console.log(`[translate] served-by=${p.name}`);
+          const skipped = failures.length
+            ? ` (skipped: ${failures.join(', ')})`
+            : '';
+          console.log(`[translate] served-by=${p.name}${skipped}`);
           return { text: out, provider: p.name };
         }
         failures.push(`${p.name}:empty`);
