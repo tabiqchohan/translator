@@ -75,3 +75,21 @@ export async function usageToday(subject: string): Promise<number> {
     return 0;
   }
 }
+
+/**
+ * Give one unit of quota back. Used when a translation fails on every
+ * provider so the user is not charged for a request that produced nothing.
+ */
+export async function releaseQuota(subject: string): Promise<void> {
+  const db = await getDb();
+  if (!db) return;
+  try {
+    await db`
+      UPDATE usage_daily
+      SET count = GREATEST(count - 1, 0), updated_at = NOW()
+      WHERE subject = ${subject} AND day = CURRENT_DATE
+    `;
+  } catch {
+    // best effort
+  }
+}

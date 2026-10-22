@@ -66,7 +66,8 @@ object TranslatorClient {
                 if (json.has("text")) {
                     return json.getString("text").trim() to null
                 }
-                return null to (json.optString("error", "Translation failed"))
+                return null to (json.optString("message")
+                    .ifBlank { json.optString("error", "Translation failed") })
             }
             return null to "HTTP $code"
         } catch (e: Exception) {

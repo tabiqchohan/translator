@@ -36,7 +36,9 @@ class TranslateService {
       } else {
         return {
           'success': false,
-          'error': response.data?['error'] ?? 'Translation failed',
+          'error': response.data?['message'] ??
+              response.data?['error'] ??
+              'Translation failed',
         };
       }
     } catch (e) {
