@@ -30,6 +30,40 @@ function nameOf(code: string) {
 
 const GROQ_MODEL = 'llama-3.3-70b-versatile';
 
+/** Gemini models to try in order; override the first with GEMINI_MODEL. */
+function geminiModels(): string[] {
+  const configured = (process.env.GEMINI_MODEL || '').trim();
+  return [
+    configured,
+    'gemini-flash-latest',
+    'gemini-2.5-flash',
+    'gemini-2.0-flash',
+  ].filter((m, i, arr) => !!m && arr.indexOf(m) === i);
+}
+
+/** Shared, tone-preserving instruction used by every LLM provider. */
+function buildTranslatePrompt(
+  text: string,
+  target: string,
+  source: string,
+): string {
+  const targetName = nameOf(target);
+  const sourcePart = source === 'auto' ? '' : ` from ${nameOf(source)}`;
+  return [
+    `Translate the following text${sourcePart} to ${targetName}.`,
+    '',
+    'Rules:',
+    '- Output ONLY the translation. No notes, no quotes, no explanation.',
+    '- Preserve the tone and register of the original (casual stays casual, formal stays formal).',
+    '- If the source is Roman Urdu, Hinglish or mixed English, output natural,',
+    '  conversational text - do NOT make it formal, literary or word-for-word stiff.',
+    '- Keep names, numbers, emoji, hashtags and line breaks unchanged.',
+    '- If the text is already in the target language, return it unchanged.',
+    '',
+    text,
+  ].join('\n');
+}
+
 /** Reads one or more env vars into a list of non-empty keys. */
 function envKeys(...names: string[]): string[] {
   return names
@@ -72,21 +106,7 @@ async function tryGroq(
   key: string | null,
 ): Promise<string | null> {
   if (!key) return null;
-  const targetName = nameOf(target);
-  const sourcePart = source === 'auto' ? '' : ` from ${nameOf(source)}`;
-  const prompt = [
-    `Translate the following text${sourcePart} to ${targetName}.`,
-    '',
-    'Rules:',
-    '- Output ONLY the translation. No notes, no quotes, no explanation.',
-    '- Preserve the tone and register of the original (casual stays casual, formal stays formal).',
-    '- If the source is Roman Urdu, Hinglish or mixed English, output natural,',
-    '  conversational text - do NOT make it formal, literary or word-for-word stiff.',
-    '- Keep names, numbers, emoji, hashtags and line breaks unchanged.',
-    '- If the text is already in the target language, return it unchanged.',
-    '',
-    text,
-  ].join('\n');
+  const prompt = buildTranslatePrompt(text, target, source);
 
   try {
     const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
@@ -112,6 +132,53 @@ async function tryGroq(
     if (content && content !== text) return content;
   } catch (e) {
     console.warn(`[translate] groq error: ${e instanceof Error ? e.message : e}`);
+  }
+  return null;
+}
+
+/** Google Gemini (AI Studio key) - strong Roman Urdu / Hinglish quality. */
+async function tryGemini(
+  text: string,
+  target: string,
+  source: string,
+  key: string | null,
+): Promise<string | null> {
+  if (!key) return null;
+  const prompt = buildTranslatePrompt(text, target, source);
+  const body = JSON.stringify({
+    contents: [{ parts: [{ text: prompt }] }],
+    generationConfig: { temperature: 0.2, maxOutputTokens: 2048 },
+  });
+
+  for (const model of geminiModels()) {
+    try {
+      const res = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body,
+          signal: AbortSignal.timeout(15000),
+        }
+      );
+      // Model name not available for this key - try the next one.
+      if (res.status === 404) continue;
+      if (!res.ok) {
+        console.warn(`[translate] gemini http ${res.status} (${model})`);
+        return null;
+      }
+      const data = await res.json();
+      const raw = (data?.candidates?.[0]?.content?.parts ?? [])
+        .map((p: any) => p?.text || '')
+        .join('');
+      const out = cleanTranslation(raw);
+      if (out && out !== text) return out;
+      return null;
+    } catch (e) {
+      console.warn(
+        `[translate] gemini error (${model}): ${e instanceof Error ? e.message : e}`
+      );
+    }
   }
   return null;
 }
@@ -214,7 +281,7 @@ async function tryMyMemory(
  *
  * NOTE: Groq rate limits are per account/project, not per key — a second key
  * from the same account only guards against a revoked key. Use a second
- * account for real extra capacity.
+ * account for real extra capacity. Gemini free tier is per project as well.
  */
 const providers: Provider[] = [
   {
@@ -222,6 +289,12 @@ const providers: Provider[] = [
     requiresKey: true,
     keys: envKeys('GROQ_API_KEY', 'GROQ_API_KEY_2', 'GROQ_API_KEY_3'),
     translate: tryGroq,
+  },
+  {
+    name: 'gemini',
+    requiresKey: true,
+    keys: envKeys('GEMINI_API_KEY', 'GEMINI_API_KEY_2'),
+    translate: tryGemini,
   },
   {
     name: 'google-cloud',
